@@ -4,464 +4,296 @@ import 'package:flutter/material.dart';
 
 // ====== BURAYI KİŞİSELLEŞTİR ======
 const String sevgiliAdi = 'Sevgilim';
-const String gonderen = 'Oğuzhan';
-const String mesaj =
-    'Seninle geçen her gün hayatımın en güzel günü. '
-    'Gülüşün, sesin, varlığın... Hepsi için teşekkür ederim.';
-const String soru = 'Sonsuza kadar benim sevgilim olur musun?';
-const String kutlamaMesaji = 'Biliyordum! Seni çok seviyorum ❤️';
+const List<String> mesajlar = [
+  'Aya dokun 🌙',
+  'İyi geceler $sevgiliAdi ✨',
+  'Rüyanda beni gör 💛',
+  'Yarın yine seni seveceğim',
+  'Gökyüzüne dokun, dilek tut ⭐',
+];
 // ==================================
 
-void main() => runApp(const SevgilimApp());
+const sari = Color(0xFFFFD54F);
 
-class SevgilimApp extends StatelessWidget {
-  const SevgilimApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sana Özel ❤️',
+void main() => runApp(const MaterialApp(
+      title: 'İyi Geceler 🌙',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.pink),
-      home: const AnaEkran(),
-    );
-  }
-}
+      home: GeceEkrani(),
+    ));
 
-class AnaEkran extends StatefulWidget {
-  const AnaEkran({super.key});
+class GeceEkrani extends StatefulWidget {
+  const GeceEkrani({super.key});
 
   @override
-  State<AnaEkran> createState() => _AnaEkranState();
+  State<GeceEkrani> createState() => _GeceEkraniState();
 }
 
-class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
-  late final AnimationController _kalpler =
-      AnimationController(vsync: this, duration: const Duration(seconds: 12))
+class _GeceEkraniState extends State<GeceEkrani>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _tik =
+      AnimationController(vsync: this, duration: const Duration(seconds: 60))
         ..repeat();
-  late final AnimationController _nabiz = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
-
   final _rnd = Random();
-  late final List<_Cicek> _cicekler = List.generate(34, (_) => _Cicek(_rnd));
-  final List<_Parca> _patlamalar = [];
-  final Stopwatch _saat = Stopwatch()..start();
+  final _saat = Stopwatch()..start();
+  late final List<_Yildiz> _yildizlar = List.generate(140, (_) => _Yildiz(_rnd));
+  late final List<_Yildiz> _bocekler = List.generate(18, (_) => _Yildiz(_rnd));
+  final List<_Kivilcim> _kivilcimlar = [];
+  final List<_KayanYildiz> _kayanlar = [];
+  int _mesaj = 0;
+  double _ayParlama = 0;
 
-  // Dokunulan yere çiçek saç
-  void _cicekSac(Offset konum, {int adet = 18}) {
-    final simdi = _saat.elapsedMilliseconds / 1000.0;
-    _patlamalar.removeWhere((p) => simdi - p.baslangic > _Parca.omur);
-    for (var i = 0; i < adet; i++) {
-      _patlamalar.add(_Parca(_rnd, konum, simdi));
+  double get _sn => _saat.elapsedMilliseconds / 1000.0;
+
+  void _gokyuzuneDokun(Offset p, Size s) {
+    final sn = _sn;
+    _kivilcimlar.removeWhere((k) => sn - k.t0 > 1.6);
+    for (var i = 0; i < 26; i++) {
+      _kivilcimlar.add(_Kivilcim(_rnd, p, sn));
     }
+    _kayanlar.removeWhere((k) => sn - k.t0 > 1.4);
+    _kayanlar.add(_KayanYildiz(
+        Offset(_rnd.nextDouble() * s.width, _rnd.nextDouble() * s.height * 0.4),
+        sn));
   }
 
-  bool _evet = false;
-  int _hayirSayisi = 0;
-  Alignment _hayirKonum = const Alignment(0.45, 0.72);
-
-  static const _hayirYazilari = [
-    'Hayır',
-    'Emin misin? 🥺',
-    'Bir daha düşün',
-    'Yakalayamazsın 😜',
-    'Bu buton bozuk',
-    'Olmaz ki 💔',
-  ];
-
-  void _kac() {
+  void _ayaDokun() {
     setState(() {
-      _hayirSayisi++;
-      _hayirKonum = Alignment(
-        _rnd.nextDouble() * 1.6 - 0.8,
-        _rnd.nextDouble() * 1.6 - 0.8,
-      );
+      _mesaj = _mesaj % (mesajlar.length - 1) + 1;
+      _ayParlama = 1;
+    });
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _ayParlama = 0);
     });
   }
 
   @override
   void dispose() {
-    _kalpler.dispose();
-    _nabiz.dispose();
+    _tik.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFF9A9E), Color(0xFFFAD0C4), Color(0xFFFBC2EB)],
-          ),
-        ),
-        child: Listener(
+      backgroundColor: const Color(0xFF05060F),
+      body: LayoutBuilder(builder: (context, c) {
+        final boyut = Size(c.maxWidth, c.maxHeight);
+        final ayCap = min(boyut.width, boyut.height) * 0.38;
+        return Listener(
           behavior: HitTestBehavior.translucent,
-          onPointerDown: (e) => _cicekSac(e.localPosition),
+          onPointerDown: (e) => _gokyuzuneDokun(e.localPosition, boyut),
           child: Stack(
-          children: [
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _kalpler,
-                builder: (_, __) => CustomPaint(
-                  painter: _CicekRessami(
-                    _cicekler,
-                    _patlamalar,
-                    _kalpler.value,
-                    _saat.elapsedMilliseconds / 1000.0,
-                    yogun: _evet,
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF05060F),
+                        Color(0xFF0B1030),
+                        Color(0xFF1A1440)
+                      ],
+                    ),
+                  ),
+                  child: AnimatedBuilder(
+                    animation: _tik,
+                    builder: (_, __) => CustomPaint(
+                      painter: _GeceRessami(
+                          _yildizlar, _bocekler, _kivilcimlar, _kayanlar, _sn),
+                    ),
                   ),
                 ),
               ),
-            ),
-            SafeArea(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                child: _evet ? _kutlama() : _soruEkrani(),
-              ),
-            ),
-          ],
-        ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buyukKalp() => ScaleTransition(
-        scale: Tween(begin: 0.9, end: 1.1).animate(
-            CurvedAnimation(parent: _nabiz, curve: Curves.easeInOut)),
-        child: const Icon(Icons.favorite, color: Color(0xFFE91E63), size: 110),
-      );
-
-  Widget _soruEkrani() {
-    final evetBoyut = 1.0 + min(_hayirSayisi, 8) * 0.12;
-    return Stack(
-      key: const ValueKey('soru'),
-      children: [
-        Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 160),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ScaleTransition(
-                    scale: Tween(begin: 0.95, end: 1.05).animate(
-                        CurvedAnimation(parent: _nabiz, curve: Curves.easeInOut)),
-                    child: const SizedBox(
-                      width: 220,
-                      height: 180,
-                      child: CustomPaint(painter: _EsekRessami()),
+              Align(
+                alignment: const Alignment(0, -0.35),
+                child: GestureDetector(
+                  onTap: _ayaDokun,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    width: ayCap,
+                    height: ayCap,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              sari.withValues(alpha: 0.45 + _ayParlama * 0.4),
+                          blurRadius: 60 + _ayParlama * 60,
+                          spreadRadius: 6 + _ayParlama * 20,
+                        ),
+                      ],
                     ),
+                    child: const CustomPaint(painter: _AyRessami()),
                   ),
-                  const SizedBox(height: 4),
-                  const Text('Ben bir eşşeğim 🙈',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF6A1B9A))),
-                  const SizedBox(height: 16),
-                  Text('Sevgili $sevgiliAdi,',
+                ),
+              ),
+              Align(
+                alignment: const Alignment(0, 0.55),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder: (w, a) => FadeTransition(
+                        opacity: a, child: ScaleTransition(scale: a, child: w)),
+                    child: Text(
+                      mesajlar[_mesaj],
+                      key: ValueKey(_mesaj),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF880E4F))),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Text(mesaj,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 18,
-                            height: 1.5,
-                            color: Color(0xFF4A148C))),
-                  ),
-                  const SizedBox(height: 28),
-                  const Text(soru,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFFAD1457))),
-                  const SizedBox(height: 24),
-                  AnimatedScale(
-                    scale: evetBoyut,
-                    duration: const Duration(milliseconds: 300),
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFE91E63),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 36, vertical: 18),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: sari,
+                        shadows: [
+                          Shadow(color: sari, blurRadius: 24),
+                          Shadow(color: Color(0xFFFF8F00), blurRadius: 8),
+                        ],
                       ),
-                      onPressed: () {
-                        final boyut = MediaQuery.of(context).size;
-                        for (var i = 0; i < 5; i++) {
-                          _cicekSac(
-                            Offset(boyut.width * (0.1 + i * 0.2),
-                                boyut.height * 0.4),
-                            adet: 24,
-                          );
-                        }
-                        setState(() => _evet = true);
-                      },
-                      icon: const Icon(Icons.favorite),
-                      label: const Text('Evet!',
-                          style: TextStyle(fontSize: 20)),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ),
-        // Kaçan "Hayır" butonu
-        AnimatedAlign(
-          alignment: _hayirKonum,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutBack,
-          child: MouseRegion(
-            onEnter: (_) => _kac(),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Color(0xFFE91E63)),
-              ),
-              onPressed: _kac,
-              child: Text(
-                _hayirYazilari[_hayirSayisi % _hayirYazilari.length],
-                style: const TextStyle(color: Color(0xFFE91E63)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _kutlama() {
-    return Center(
-      key: const ValueKey('kutlama'),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: const Duration(milliseconds: 900),
-              curve: Curves.elasticOut,
-              builder: (_, v, child) => Transform.scale(scale: v, child: child),
-              child: _buyukKalp(),
-            ),
-            const SizedBox(height: 24),
-            const Text(kutlamaMesaji,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF880E4F))),
-            const SizedBox(height: 12),
-            const Text('— $gonderen',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFFAD1457))),
-            const SizedBox(height: 32),
-            TextButton(
-              onPressed: () => setState(() {
-                _evet = false;
-                _hayirSayisi = 0;
-              }),
-              child: const Text('Tekrar izle ↺'),
-            ),
-          ],
-        ),
-      ),
+        );
+      }),
     );
   }
 }
 
-const _renkler = [
-  Color(0xFFE91E63),
-  Color(0xFFFF80AB),
-  Color(0xFFFFFFFF),
-  Color(0xFFF06292),
-  Color(0xFFBA68C8),
-  Color(0xFFFFB74D),
-];
-
-class _Cicek {
-  _Cicek(Random r)
-      : x = r.nextDouble(),
-        faz = r.nextDouble(),
-        boyut = 9 + r.nextDouble() * 14,
-        salinim = r.nextDouble() * 2 * pi,
-        hiz = 0.5 + r.nextDouble() * 0.9,
-        donus = (r.nextDouble() - 0.5) * 8,
-        renk = _renkler[r.nextInt(_renkler.length)];
-
-  final double x, faz, boyut, salinim, hiz, donus;
-  final Color renk;
+class _Yildiz {
+  _Yildiz(Random rnd)
+      : x = rnd.nextDouble(),
+        y = rnd.nextDouble(),
+        r = 0.6 + rnd.nextDouble() * 1.8,
+        faz = rnd.nextDouble() * 2 * pi,
+        hiz = 0.5 + rnd.nextDouble() * 2.5;
+  final double x, y, r, faz, hiz;
 }
 
-class _Parca {
-  _Parca(Random r, this.merkez, this.baslangic)
-      : aci = r.nextDouble() * 2 * pi,
-        guc = 120 + r.nextDouble() * 260,
-        boyut = 8 + r.nextDouble() * 10,
-        donus = (r.nextDouble() - 0.5) * 12,
-        renk = _renkler[r.nextInt(_renkler.length)];
-
-  static const double omur = 2.2;
-  final Offset merkez;
-  final double baslangic, aci, guc, boyut, donus;
-  final Color renk;
+class _Kivilcim {
+  _Kivilcim(Random rnd, this.p, this.t0)
+      : aci = rnd.nextDouble() * 2 * pi,
+        guc = 60 + rnd.nextDouble() * 220,
+        boy = 1.5 + rnd.nextDouble() * 3;
+  final Offset p;
+  final double t0, aci, guc, boy;
 }
 
-class _CicekRessami extends CustomPainter {
-  _CicekRessami(this.cicekler, this.parcalar, this.t, this.saniye,
-      {required this.yogun});
+class _KayanYildiz {
+  _KayanYildiz(this.p, this.t0);
+  final Offset p;
+  final double t0;
+}
 
-  final List<_Cicek> cicekler;
-  final List<_Parca> parcalar;
-  final double t, saniye;
-  final bool yogun;
+class _GeceRessami extends CustomPainter {
+  _GeceRessami(
+      this.yildizlar, this.bocekler, this.kivilcimlar, this.kayanlar, this.sn);
+  final List<_Yildiz> yildizlar, bocekler;
+  final List<_Kivilcim> kivilcimlar;
+  final List<_KayanYildiz> kayanlar;
+  final double sn;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Yukarıdan yağan çiçekler
-    for (final c in cicekler) {
-      final ilerleme = (t * c.hiz + c.faz) % 1.0;
-      final y = size.height * (ilerleme * 1.2 - 0.1);
-      final x = size.width * c.x + sin(ilerleme * 5 * pi + c.salinim) * 24;
-      final boyut = c.boyut * (yogun ? 1.4 : 1.0);
-      _cicekCiz(canvas, Offset(x, y), boyut, ilerleme * c.donus * pi, c.renk,
-          yogun ? 0.95 : 0.75);
-    }
-    // Dokunuşla saçılan çiçekler
-    for (final p in parcalar) {
-      final g = saniye - p.baslangic;
-      if (g < 0 || g > _Parca.omur) continue;
-      final dx = cos(p.aci) * p.guc * g;
-      final dy = sin(p.aci) * p.guc * g + 260 * g * g;
-      final opak = 1 - g / _Parca.omur;
-      _cicekCiz(canvas, p.merkez + Offset(dx, dy), p.boyut, g * p.donus,
-          p.renk, opak);
-    }
-  }
+    final boya = Paint();
+    final isilti = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    final yildizRengi = Color.lerp(Colors.white, sari, 0.6)!;
 
-  void _cicekCiz(Canvas canvas, Offset merkez, double s, double aci,
-      Color renk, double opak) {
-    canvas.save();
-    canvas.translate(merkez.dx, merkez.dy);
-    canvas.rotate(aci);
-    final yaprak = Paint()..color = renk.withValues(alpha: opak);
-    final kenar = Paint()
-      ..color = const Color(0xFFAD1457).withValues(alpha: opak * 0.35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    for (var i = 0; i < 5; i++) {
-      canvas.save();
-      canvas.rotate(i * 2 * pi / 5);
-      final r = Rect.fromCenter(
-          center: Offset(0, -s * 0.55), width: s * 0.7, height: s * 1.05);
-      canvas.drawOval(r, yaprak);
-      canvas.drawOval(r, kenar);
-      canvas.restore();
+    // Yanıp sönen yıldızlar
+    for (final y in yildizlar) {
+      final a = 0.35 + 0.65 * (0.5 + 0.5 * sin(sn * y.hiz + y.faz));
+      boya.color = yildizRengi.withValues(alpha: a);
+      canvas.drawCircle(Offset(y.x * size.width, y.y * size.height), y.r, boya);
     }
-    canvas.drawCircle(Offset.zero, s * 0.28,
-        Paint()..color = const Color(0xFFFFD54F).withValues(alpha: opak));
-    canvas.restore();
+
+    // Ateş böcekleri
+    for (final b in bocekler) {
+      final x = (b.x * size.width + sin(sn * 0.3 * b.hiz + b.faz) * 60) %
+          size.width;
+      final yy = size.height * (0.55 + 0.4 * b.y) +
+          cos(sn * 0.4 * b.hiz + b.faz) * 30;
+      final a = 0.4 + 0.6 * (0.5 + 0.5 * sin(sn * 2 * b.hiz + b.faz));
+      final o = Offset(x, yy);
+      isilti.color = sari.withValues(alpha: a * 0.8);
+      canvas.drawCircle(o, 7, isilti);
+      boya.color = const Color(0xFFFFF59D).withValues(alpha: a);
+      canvas.drawCircle(o, 2.2, boya);
+    }
+
+    // Kayan yıldızlar
+    for (final k in kayanlar) {
+      final g = (sn - k.t0) / 1.2;
+      if (g < 0 || g > 1) continue;
+      final bas = k.p + Offset(g * 420, g * 180);
+      final kuyruk = bas - const Offset(120, 52);
+      final cizgi = Paint()
+        ..shader = LinearGradient(colors: [
+          sari.withValues(alpha: 0),
+          sari.withValues(alpha: 1 - g),
+        ]).createShader(Rect.fromPoints(kuyruk, bas))
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(kuyruk, bas, cizgi);
+      isilti.color = sari.withValues(alpha: 1 - g);
+      canvas.drawCircle(bas, 6, isilti);
+    }
+
+    // Dokunuş kıvılcımları
+    for (final k in kivilcimlar) {
+      final g = sn - k.t0;
+      if (g < 0 || g > 1.6) continue;
+      final o = k.p +
+          Offset(cos(k.aci) * k.guc * g, sin(k.aci) * k.guc * g + 40 * g * g);
+      final a = 1 - g / 1.6;
+      isilti.color = sari.withValues(alpha: a * 0.7);
+      canvas.drawCircle(o, k.boy * 2.5, isilti);
+      boya.color = const Color(0xFFFFF8E1).withValues(alpha: a);
+      canvas.drawCircle(o, k.boy, boya);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _CicekRessami old) => true;
+  bool shouldRepaint(covariant _GeceRessami old) => true;
 }
 
-class _EsekRessami extends CustomPainter {
-  const _EsekRessami();
+class _AyRessami extends CustomPainter {
+  const _AyRessami();
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 220, size.height / 180);
-    final gri = Paint()..color = const Color(0xFF9E9E9E);
-    final koyu = Paint()..color = const Color(0xFF616161);
-    final acik = Paint()..color = const Color(0xFFE0E0E0);
-    final siyah = Paint()..color = const Color(0xFF212121);
-    final pembe = Paint()..color = const Color(0xFFF8BBD0);
-
-    // Kuyruk
-    final kuyruk = Paint()
-      ..color = const Color(0xFF616161)
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(const Offset(45, 95), const Offset(22, 125), kuyruk);
-    canvas.drawCircle(const Offset(20, 128), 7, Paint()..color = const Color(0xFF424242));
-    // Bacaklar
-    for (final x in [58.0, 78.0, 118.0, 138.0]) {
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(x, 105, 14, 55), const Radius.circular(6)),
-          gri);
-      canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(x - 1, 152, 16, 10), const Radius.circular(3)),
-          siyah);
-    }
-    // Gövde
-    canvas.drawOval(const Rect.fromLTWH(40, 65, 120, 60), gri);
-    canvas.drawOval(const Rect.fromLTWH(70, 95, 60, 25), acik);
-    // Boyun
-    final boyun = Path()
-      ..moveTo(130, 80)
-      ..lineTo(150, 40)
-      ..lineTo(172, 48)
-      ..lineTo(160, 95)
-      ..close();
-    canvas.drawPath(boyun, gri);
-    // Yele
-    for (var i = 0; i < 5; i++) {
-      canvas.drawCircle(Offset(146 + i * 1.5, 45.0 + i * 9), 5, koyu);
-    }
-    // Kulaklar
-    for (final dx in [-9.0, 9.0]) {
-      canvas.save();
-      canvas.translate(172 + dx, 30);
-      canvas.rotate(dx * 0.03);
-      canvas.drawOval(const Rect.fromLTWH(-7, -34, 14, 38), gri);
-      canvas.drawOval(const Rect.fromLTWH(-3.5, -28, 7, 26), pembe);
-      canvas.restore();
-    }
-    // Kafa
-    canvas.drawOval(const Rect.fromLTWH(150, 22, 44, 50), gri);
-    // Ağız / burun
-    canvas.drawOval(const Rect.fromLTWH(160, 55, 46, 34), acik);
-    canvas.drawCircle(const Offset(176, 70), 3, siyah);
-    canvas.drawCircle(const Offset(192, 70), 3, siyah);
-    // Gülümseme
-    canvas.drawArc(const Rect.fromLTWH(172, 72, 22, 10), 0.2, 2.7, false,
+    final r = size.width / 2;
+    final c = Offset(r, r);
+    canvas.drawCircle(
+        c,
+        r,
         Paint()
-          ..color = const Color(0xFF212121)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2);
-    // Gözler
-    canvas.drawCircle(const Offset(165, 42), 5, siyah);
-    canvas.drawCircle(const Offset(185, 42), 5, siyah);
-    canvas.drawCircle(const Offset(166.5, 40.5), 1.6, Paint()..color = Colors.white);
-    canvas.drawCircle(const Offset(186.5, 40.5), 1.6, Paint()..color = Colors.white);
-    // Yanaklar
-    canvas.drawCircle(const Offset(158, 56), 5, pembe);
-    canvas.drawCircle(const Offset(198, 54), 5, pembe);
+          ..shader = const RadialGradient(
+            center: Alignment(-0.3, -0.3),
+            colors: [Color(0xFFFFF9C4), sari, Color(0xFFFFB300)],
+          ).createShader(Rect.fromCircle(center: c, radius: r)));
+    final krater = Paint()
+      ..color = const Color(0xFFFFA000).withValues(alpha: 0.35);
+    canvas.drawCircle(c + Offset(-r * 0.3, -r * 0.35), r * 0.14, krater);
+    canvas.drawCircle(c + Offset(r * 0.4, r * 0.35), r * 0.12, krater);
+    canvas.drawCircle(c + Offset(-r * 0.45, r * 0.4), r * 0.08, krater);
+    // Uyuyan yüz
+    final yuz = Paint()
+      ..color = const Color(0xFF6D4C00)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * 0.05
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+        Rect.fromCircle(center: c + Offset(-r * 0.3, -r * 0.02), radius: r * 0.13),
+        0.2, pi - 0.4, false, yuz);
+    canvas.drawArc(
+        Rect.fromCircle(center: c + Offset(r * 0.3, -r * 0.02), radius: r * 0.13),
+        0.2, pi - 0.4, false, yuz);
+    canvas.drawArc(
+        Rect.fromCircle(center: c + Offset(0, r * 0.2), radius: r * 0.18),
+        0.4, pi - 0.8, false, yuz);
   }
 
   @override
