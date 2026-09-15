@@ -44,7 +44,18 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
     ..repeat(reverse: true);
 
   final _rnd = Random();
-  late final List<_Kalp> _kalpListesi = List.generate(28, (_) => _Kalp(_rnd));
+  late final List<_Cicek> _cicekler = List.generate(34, (_) => _Cicek(_rnd));
+  final List<_Parca> _patlamalar = [];
+  final Stopwatch _saat = Stopwatch()..start();
+
+  // Dokunulan yere çiçek saç
+  void _cicekSac(Offset konum, {int adet = 18}) {
+    final simdi = _saat.elapsedMilliseconds / 1000.0;
+    _patlamalar.removeWhere((p) => simdi - p.baslangic > _Parca.omur);
+    for (var i = 0; i < adet; i++) {
+      _patlamalar.add(_Parca(_rnd, konum, simdi));
+    }
+  }
 
   bool _evet = false;
   int _hayirSayisi = 0;
@@ -87,14 +98,22 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
             colors: [Color(0xFFFF9A9E), Color(0xFFFAD0C4), Color(0xFFFBC2EB)],
           ),
         ),
-        child: Stack(
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (e) => _cicekSac(e.localPosition),
+          child: Stack(
           children: [
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _kalpler,
                 builder: (_, __) => CustomPaint(
-                  painter: _KalpRessami(_kalpListesi, _kalpler.value,
-                      yogun: _evet),
+                  painter: _CicekRessami(
+                    _cicekler,
+                    _patlamalar,
+                    _kalpler.value,
+                    _saat.elapsedMilliseconds / 1000.0,
+                    yogun: _evet,
+                  ),
                 ),
               ),
             ),
@@ -105,6 +124,7 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -168,7 +188,17 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 36, vertical: 18),
                       ),
-                      onPressed: () => setState(() => _evet = true),
+                      onPressed: () {
+                        final boyut = MediaQuery.of(context).size;
+                        for (var i = 0; i < 5; i++) {
+                          _cicekSac(
+                            Offset(boyut.width * (0.1 + i * 0.2),
+                                boyut.height * 0.4),
+                            adet: 24,
+                          );
+                        }
+                        setState(() => _evet = true);
+                      },
                       icon: const Icon(Icons.favorite),
                       label: const Text('Evet!',
                           style: TextStyle(fontSize: 20)),
@@ -246,49 +276,99 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
   }
 }
 
-class _Kalp {
-  _Kalp(Random r)
+const _renkler = [
+  Color(0xFFE91E63),
+  Color(0xFFFF80AB),
+  Color(0xFFFFFFFF),
+  Color(0xFFF06292),
+  Color(0xFFBA68C8),
+  Color(0xFFFFB74D),
+];
+
+class _Cicek {
+  _Cicek(Random r)
       : x = r.nextDouble(),
         faz = r.nextDouble(),
-        boyut = 10 + r.nextDouble() * 22,
+        boyut = 9 + r.nextDouble() * 14,
         salinim = r.nextDouble() * 2 * pi,
-        hiz = 0.6 + r.nextDouble() * 0.8;
+        hiz = 0.5 + r.nextDouble() * 0.9,
+        donus = (r.nextDouble() - 0.5) * 8,
+        renk = _renkler[r.nextInt(_renkler.length)];
 
-  final double x, faz, boyut, salinim, hiz;
+  final double x, faz, boyut, salinim, hiz, donus;
+  final Color renk;
 }
 
-class _KalpRessami extends CustomPainter {
-  _KalpRessami(this.kalpler, this.t, {required this.yogun});
+class _Parca {
+  _Parca(Random r, this.merkez, this.baslangic)
+      : aci = r.nextDouble() * 2 * pi,
+        guc = 120 + r.nextDouble() * 260,
+        boyut = 8 + r.nextDouble() * 10,
+        donus = (r.nextDouble() - 0.5) * 12,
+        renk = _renkler[r.nextInt(_renkler.length)];
 
-  final List<_Kalp> kalpler;
-  final double t;
+  static const double omur = 2.2;
+  final Offset merkez;
+  final double baslangic, aci, guc, boyut, donus;
+  final Color renk;
+}
+
+class _CicekRessami extends CustomPainter {
+  _CicekRessami(this.cicekler, this.parcalar, this.t, this.saniye,
+      {required this.yogun});
+
+  final List<_Cicek> cicekler;
+  final List<_Parca> parcalar;
+  final double t, saniye;
   final bool yogun;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final k in kalpler) {
-      final ilerleme = (t * k.hiz + k.faz) % 1.0;
-      final y = size.height * (1.1 - ilerleme * 1.3);
-      final x = size.width * k.x + sin(ilerleme * 6 * pi + k.salinim) * 18;
-      final boyut = k.boyut * (yogun ? 1.5 : 1.0);
-      final paint = Paint()
-        ..color = const Color(0xFFE91E63)
-            .withValues(alpha: (yogun ? 0.55 : 0.3) * (1 - ilerleme * 0.6));
-      canvas.drawPath(_kalpYolu(Offset(x, y), boyut), paint);
+    // Yukarıdan yağan çiçekler
+    for (final c in cicekler) {
+      final ilerleme = (t * c.hiz + c.faz) % 1.0;
+      final y = size.height * (ilerleme * 1.2 - 0.1);
+      final x = size.width * c.x + sin(ilerleme * 5 * pi + c.salinim) * 24;
+      final boyut = c.boyut * (yogun ? 1.4 : 1.0);
+      _cicekCiz(canvas, Offset(x, y), boyut, ilerleme * c.donus * pi, c.renk,
+          yogun ? 0.95 : 0.75);
+    }
+    // Dokunuşla saçılan çiçekler
+    for (final p in parcalar) {
+      final g = saniye - p.baslangic;
+      if (g < 0 || g > _Parca.omur) continue;
+      final dx = cos(p.aci) * p.guc * g;
+      final dy = sin(p.aci) * p.guc * g + 260 * g * g;
+      final opak = 1 - g / _Parca.omur;
+      _cicekCiz(canvas, p.merkez + Offset(dx, dy), p.boyut, g * p.donus,
+          p.renk, opak);
     }
   }
 
-  Path _kalpYolu(Offset c, double s) {
-    return Path()
-      ..moveTo(c.dx, c.dy + s * 0.35)
-      ..cubicTo(c.dx - s * 1.0, c.dy - s * 0.3, c.dx - s * 0.45, c.dy - s * 0.95,
-          c.dx, c.dy - s * 0.45)
-      ..cubicTo(c.dx + s * 0.45, c.dy - s * 0.95, c.dx + s * 1.0, c.dy - s * 0.3,
-          c.dx, c.dy + s * 0.35)
-      ..close();
+  void _cicekCiz(Canvas canvas, Offset merkez, double s, double aci,
+      Color renk, double opak) {
+    canvas.save();
+    canvas.translate(merkez.dx, merkez.dy);
+    canvas.rotate(aci);
+    final yaprak = Paint()..color = renk.withValues(alpha: opak);
+    final kenar = Paint()
+      ..color = const Color(0xFFAD1457).withValues(alpha: opak * 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (var i = 0; i < 5; i++) {
+      canvas.save();
+      canvas.rotate(i * 2 * pi / 5);
+      final r = Rect.fromCenter(
+          center: Offset(0, -s * 0.55), width: s * 0.7, height: s * 1.05);
+      canvas.drawOval(r, yaprak);
+      canvas.drawOval(r, kenar);
+      canvas.restore();
+    }
+    canvas.drawCircle(Offset.zero, s * 0.28,
+        Paint()..color = const Color(0xFFFFD54F).withValues(alpha: opak));
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _KalpRessami old) =>
-      old.t != t || old.yogun != yogun;
+  bool shouldRepaint(covariant _CicekRessami old) => true;
 }
