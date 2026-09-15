@@ -149,7 +149,22 @@ class _AnaEkranState extends State<AnaEkran> with TickerProviderStateMixin {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buyukKalp(),
+                  ScaleTransition(
+                    scale: Tween(begin: 0.95, end: 1.05).animate(
+                        CurvedAnimation(parent: _nabiz, curve: Curves.easeInOut)),
+                    child: const SizedBox(
+                      width: 220,
+                      height: 180,
+                      child: CustomPaint(painter: _EsekRessami()),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text('Ben bir eşşeğim 🙈',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF6A1B9A))),
                   const SizedBox(height: 16),
                   Text('Sevgili $sevgiliAdi,',
                       textAlign: TextAlign.center,
@@ -371,4 +386,84 @@ class _CicekRessami extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CicekRessami old) => true;
+}
+
+class _EsekRessami extends CustomPainter {
+  const _EsekRessami();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.scale(size.width / 220, size.height / 180);
+    final gri = Paint()..color = const Color(0xFF9E9E9E);
+    final koyu = Paint()..color = const Color(0xFF616161);
+    final acik = Paint()..color = const Color(0xFFE0E0E0);
+    final siyah = Paint()..color = const Color(0xFF212121);
+    final pembe = Paint()..color = const Color(0xFFF8BBD0);
+
+    // Kuyruk
+    final kuyruk = Paint()
+      ..color = const Color(0xFF616161)
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(45, 95), const Offset(22, 125), kuyruk);
+    canvas.drawCircle(const Offset(20, 128), 7, Paint()..color = const Color(0xFF424242));
+    // Bacaklar
+    for (final x in [58.0, 78.0, 118.0, 138.0]) {
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(x, 105, 14, 55), const Radius.circular(6)),
+          gri);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTWH(x - 1, 152, 16, 10), const Radius.circular(3)),
+          siyah);
+    }
+    // Gövde
+    canvas.drawOval(const Rect.fromLTWH(40, 65, 120, 60), gri);
+    canvas.drawOval(const Rect.fromLTWH(70, 95, 60, 25), acik);
+    // Boyun
+    final boyun = Path()
+      ..moveTo(130, 80)
+      ..lineTo(150, 40)
+      ..lineTo(172, 48)
+      ..lineTo(160, 95)
+      ..close();
+    canvas.drawPath(boyun, gri);
+    // Yele
+    for (var i = 0; i < 5; i++) {
+      canvas.drawCircle(Offset(146 + i * 1.5, 45.0 + i * 9), 5, koyu);
+    }
+    // Kulaklar
+    for (final dx in [-9.0, 9.0]) {
+      canvas.save();
+      canvas.translate(172 + dx, 30);
+      canvas.rotate(dx * 0.03);
+      canvas.drawOval(const Rect.fromLTWH(-7, -34, 14, 38), gri);
+      canvas.drawOval(const Rect.fromLTWH(-3.5, -28, 7, 26), pembe);
+      canvas.restore();
+    }
+    // Kafa
+    canvas.drawOval(const Rect.fromLTWH(150, 22, 44, 50), gri);
+    // Ağız / burun
+    canvas.drawOval(const Rect.fromLTWH(160, 55, 46, 34), acik);
+    canvas.drawCircle(const Offset(176, 70), 3, siyah);
+    canvas.drawCircle(const Offset(192, 70), 3, siyah);
+    // Gülümseme
+    canvas.drawArc(const Rect.fromLTWH(172, 72, 22, 10), 0.2, 2.7, false,
+        Paint()
+          ..color = const Color(0xFF212121)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);
+    // Gözler
+    canvas.drawCircle(const Offset(165, 42), 5, siyah);
+    canvas.drawCircle(const Offset(185, 42), 5, siyah);
+    canvas.drawCircle(const Offset(166.5, 40.5), 1.6, Paint()..color = Colors.white);
+    canvas.drawCircle(const Offset(186.5, 40.5), 1.6, Paint()..color = Colors.white);
+    // Yanaklar
+    canvas.drawCircle(const Offset(158, 56), 5, pembe);
+    canvas.drawCircle(const Offset(198, 54), 5, pembe);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
