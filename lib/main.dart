@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ const List<String> mesajlar = [
   'Yarın yine seni seveceğim',
   'Gökyüzüne dokun, dilek tut ⭐',
 ];
+// Buluşma: 16 Eylül 2026, 18:00 (Türkiye saati = 15:00 UTC)
+final DateTime bulusma = DateTime.utc(2026, 9, 16, 15, 0);
 // ==================================
 
 const sari = Color(0xFFFFD54F);
@@ -41,6 +44,61 @@ class _GeceEkraniState extends State<GeceEkrani>
   final List<_KayanYildiz> _kayanlar = [];
   int _mesaj = 0;
   double _ayParlama = 0;
+  late final Timer _sayacTimer =
+      Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+
+  @override
+  void initState() {
+    super.initState();
+    _sayacTimer;
+  }
+
+  Widget _sayac() {
+    final kalan = bulusma.difference(DateTime.now().toUtc());
+    if (kalan.isNegative) {
+      return const Text('Görüşme zamanı geldi! 💛',
+          style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: sari,
+              shadows: [Shadow(color: sari, blurRadius: 20)]));
+    }
+    String iki(int n) => n.toString().padLeft(2, '0');
+    Widget kutu(String deger, String etiket) => Container(
+          width: 74,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: sari.withValues(alpha: 0.6)),
+            boxShadow: [
+              BoxShadow(color: sari.withValues(alpha: 0.25), blurRadius: 18)
+            ],
+          ),
+          child: Column(children: [
+            Text(deger,
+                style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    color: sari,
+                    shadows: [Shadow(color: sari, blurRadius: 16)])),
+            Text(etiket,
+                style: TextStyle(
+                    fontSize: 12, color: sari.withValues(alpha: 0.8))),
+          ]),
+        );
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text('Görüşmemize kalan 💛',
+          style: TextStyle(fontSize: 16, color: sari.withValues(alpha: 0.9))),
+      const SizedBox(height: 10),
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        kutu(iki(kalan.inHours), 'saat'),
+        kutu(iki(kalan.inMinutes % 60), 'dakika'),
+        kutu(iki(kalan.inSeconds % 60), 'saniye'),
+      ]),
+    ]);
+  }
 
   double get _sn => _saat.elapsedMilliseconds / 1000.0;
 
@@ -68,6 +126,7 @@ class _GeceEkraniState extends State<GeceEkrani>
 
   @override
   void dispose() {
+    _sayacTimer.cancel();
     _tik.dispose();
     super.dispose();
   }
@@ -107,7 +166,7 @@ class _GeceEkraniState extends State<GeceEkrani>
                 ),
               ),
               Align(
-                alignment: const Alignment(0, -0.35),
+                alignment: const Alignment(0, -0.5),
                 child: GestureDetector(
                   onTap: _ayaDokun,
                   child: AnimatedContainer(
@@ -130,7 +189,11 @@ class _GeceEkraniState extends State<GeceEkrani>
                 ),
               ),
               Align(
-                alignment: const Alignment(0, 0.55),
+                alignment: const Alignment(0, 0.9),
+                child: _sayac(),
+              ),
+              Align(
+                alignment: const Alignment(0, 0.4),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: AnimatedSwitcher(
@@ -142,7 +205,7 @@ class _GeceEkraniState extends State<GeceEkrani>
                       key: ValueKey(_mesaj),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 32,
+                        fontSize: 26,
                         fontWeight: FontWeight.w800,
                         color: sari,
                         shadows: [
