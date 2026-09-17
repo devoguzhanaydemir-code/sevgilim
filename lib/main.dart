@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 // ====== BURAYI KİŞİSELLEŞTİR ======
 const String gonderen = 'Oğuzhan';
 const String finalMesaj = 'Kalbimi de sen iyileştirdin 💛';
-const int hedef = 10;
+const int hedef = 5;
 // ==================================
 
 const nane = Color(0xFF26A69A);
@@ -61,7 +61,7 @@ class _OyunState extends State<Oyun> with TickerProviderStateMixin {
   final _rnd = Random();
   Asama _asama = Asama.giris;
   int _iyilesen = 0;
-  int _can = 3;
+  int _can = 1;
   late Dert _dert;
   String? _geriBildirim;
   bool _dogru = false;
@@ -81,7 +81,7 @@ class _OyunState extends State<Oyun> with TickerProviderStateMixin {
     setState(() {
       _asama = Asama.oyun;
       _iyilesen = 0;
-      _can = 3;
+      _can = 1;
     });
     _yeniHasta();
   }
@@ -189,7 +189,7 @@ class _OyunState extends State<Oyun> with TickerProviderStateMixin {
           const SizedBox(height: 16),
           const Text(
             'Hastalar sırayla geliyor!\nSüre bitmeden doğru malzemeye dokun.\n'
-            '$hedef hastayı iyileştir, 3 hata hakkın var.',
+            '$hedef hastayı iyileştir, hiç hata hakkın yok!',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 17, height: 1.5, color: Colors.black87),
           ),
@@ -208,7 +208,7 @@ class _OyunState extends State<Oyun> with TickerProviderStateMixin {
             Text('Hasta $_iyilesen / $hedef',
                 style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w700, color: koyu)),
-            Text(List.generate(3, (i) => i < _can ? '❤️' : '🤍').join(' '),
+            Text(_can > 0 ? '❤️' : '💔',
                 style: const TextStyle(fontSize: 22)),
           ],
         ),
