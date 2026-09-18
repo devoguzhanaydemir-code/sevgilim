@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sahil Kaçamağı 🏝️</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(170deg,#0a2a43,#0e4d64 45%,#1b7f8e);color:#fff;
+    display:flex;justify-content:center;padding:16px;user-select:none;-webkit-user-select:none}
+  .wrap{width:100%;max-width:440px}
+  a.geri{color:#b2ebf2;font-size:14px;text-decoration:none}
+  h1{font-size:26px;margin:6px 0 2px;text-align:center;color:#ffe082;text-shadow:0 0 20px #ffe08255}
+  p.alt{margin:0 0 12px;text-align:center;color:#b2ebf2;font-size:14px}
+  .ust{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;font-size:14px}
+  .ust .kutu{background:#ffffff14;border:1px solid #ffffff22;border-radius:14px;padding:6px 12px;flex:1;text-align:center}
+  .ust b{display:block;font-size:18px;color:#ffe082}
+  #tahta{position:relative;width:378px;height:388px;margin:0 auto;border-radius:20px;
+    background:#ffffff0f;border:1px solid #ffffff22;overflow:hidden}
+  .tas{position:absolute;width:54px;height:54px;border-radius:12px;display:flex;align-items:center;
+    justify-content:center;font-size:29px;background:linear-gradient(160deg,#fff9e6,#ffe9b8);
+    border:2px solid #00000022;box-shadow:0 3px 0 #00000033,0 6px 12px #00000044;
+    transition:transform .12s,opacity .18s;cursor:pointer}
+  .tas.kapali{filter:brightness(.5) saturate(.6);cursor:default}
+  .tas.giden{transform:scale(.4);opacity:0}
+  .tas:not(.kapali):active{transform:scale(.92)}
+  #tepsiKutu{margin:14px auto 0;width:378px;background:#ffffff14;border:1px solid #ffffff22;
+    border-radius:18px;padding:8px;display:flex;gap:4px;justify-content:center}
+  .yuva{width:46px;height:50px;border-radius:10px;background:#0000002e;display:flex;align-items:center;
+    justify-content:center;font-size:26px;flex:0 0 auto}
+  .yuva.dolu{background:linear-gradient(160deg,#fff9e6,#ffe9b8);box-shadow:0 2px 0 #00000033}
+  .yuva.patla{animation:patla .3s ease-out}
+  @keyframes patla{50%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .dugmeler{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  button{font:inherit;border:0;border-radius:16px;padding:10px 16px;background:#ffe082;color:#0a2a43;
+    font-weight:800;cursor:pointer}
+  button:disabled{opacity:.4;cursor:default}
+  button.ikincil{background:#4dd0e1;color:#06323f}
+  #perde{position:fixed;inset:0;background:#001722dd;display:none;align-items:center;justify-content:center;padding:20px;z-index:99}
+  #perde .kart{background:#0e4d64;border:1px solid #ffffff33;border-radius:24px;padding:26px;max-width:340px;text-align:center}
+  #perde h2{margin:0 0 8px;color:#ffe082;font-size:26px}
+  #perde p{margin:0 0 16px;color:#e0f7fa;font-size:16px;line-height:1.5}
+  footer{margin-top:16px;text-align:center;color:#ffe082;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="geri" href="./">← ana sayfa</a>
+  <h1>Sahil Kaçamağı 🏝️</h1>
+  <p class="alt">Aynı üç şeyi yan yana getir, tepsi dolmadan sahili topla</p>
+
+  <div class="ust">
+    <div class="kutu">Bölüm<b id="bolum">1</b></div>
+    <div class="kutu">Kalan taş<b id="kalan">0</b></div>
+    <div class="kutu">Süre<b id="sure">0:00</b></div>
+  </div>
+
+  <div id="tahta"></div>
+  <div id="tepsiKutu"></div>
+
+  <div class="dugmeler">
+    <button class="ikincil" id="geriAl">↩︎ Geri al (<span id="geriSayi">3</span>)</button>
+    <button class="ikincil" id="karistir">🔀 Karıştır (<span id="karSayi">3</span>)</button>
+    <button id="yeniden">↺ Baştan</button>
+  </div>
+
+  <footer>— Oğuzhan 💛</footer>
+</div>
+
+<div id="perde"><div class="kart">
+  <h2 id="pBaslik"></h2>
+  <p id="pMetin"></p>
+  <button id="pDugme"></button>
+</div></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const SIMGE = ["🐚","🦀","🐠","⛱️","🍹","🌴","⭐","🐬","🏄","🦩","🐙","🍦","🪁","⚓","🕶️","🩴"];
+const T = 54, BW = 378, BH = 388, YUVA = 7;
+
+const MESAJ = [
+  "Sahili topladık! Sıradaki bölüm birlikte 💛",
+  "Ne güzel oynuyorsun, deniz kenarında gibiyiz 🌊",
+  "Bir gün gerçekten bu sahilde olacağız 🏖️",
+  "Seninle her bölüm daha kolay 🫶",
+  "Kum, güneş ve sen ☀️",
+  "Bu bölümü de senin adına geçtim 💛"
+];
+
+let taslar = [], tepsi = [], bolum = 1, geriHak = 3, karHak = 3, baslangic = 0, sayacId = null, oynanir = true;
+let gecmis = [];
+
+function seviye(n){
+  return {
+    tur: Math.min(SIMGE.length, 4 + n),          // kaç farklı simge
+    kat: Math.min(5, 2 + Math.floor(n/2)),        // kaç kat
+    ucluk: 6 + n * 2                              // kaç üçlü
+  };
+}
+
+function kur(){
+  const s = seviye(bolum);
+  const simgeler = SIMGE.slice().sort(()=>Math.random()-0.5).slice(0, s.tur);
+  // üçlüleri hazırla
+  let havuz = [];
+  for(let i=0;i<s.ucluk;i++){
+    const sim = simgeler[i % simgeler.length];
+    havuz.push(sim, sim, sim);
+  }
+  havuz.sort(()=>Math.random()-0.5);
+
+  // konumlar
+  const adimX = T/2, adimY = T/2;
+  const maxX = Math.floor((BW - T) / adimX), maxY = Math.floor((BH - T) / adimY);
+  taslar = [];
+  let id = 0;
+  const kullanilan = new Set();
+  for(const sim of havuz){
+    let x, y, kat, anahtar, dene = 0;
+    do{
+      kat = Math.floor(Math.random() * s.kat);
+      x = Math.round(Math.random() * maxX) * adimX;
+      y = Math.round(Math.random() * maxY) * adimY;
+      anahtar = kat + ":" + x + ":" + y;
+      dene++;
+    } while(kullanilan.has(anahtar) && dene < 60);
+    kullanilan.add(anahtar);
+    taslar.push({id: id++, sim, x, y, kat, gitti: false});
+  }
+  tepsi = []; gecmis = [];
+  geriHak = 3; karHak = 3;
+  oynanir = true;
+  baslangic = Date.now();
+  clearInterval(sayacId);
+  sayacId = setInterval(sureYaz, 500);
+  ciz(); tepsiCiz(); bilgiYaz();
+}
+
+function kapaliMi(t){
+  return taslar.some(u => !u.gitti && u !== t && u.kat > t.kat &&
+    Math.abs(u.x - t.x) < T && Math.abs(u.y - t.y) < T);
+}
+
+function ciz(){
+  const tahta = $("tahta");
+  tahta.innerHTML = "";
+  taslar.filter(t=>!t.gitti).sort((a,b)=>a.kat-b.kat).forEach(t=>{
+    const d = document.createElement("div");
+    d.className = "tas" + (kapaliMi(t) ? " kapali" : "");
+    d.style.left = t.x + "px"; d.style.top = t.y + "px";
+    d.style.zIndex = t.kat * 100 + Math.floor(t.y);
+    d.textContent = t.sim;
+    d.onclick = ()=>al(t, d);
+    tahta.appendChild(d);
+  });
+}
+
+function tepsiCiz(patlayan){
+  const k = $("tepsiKutu"); k.innerHTML = "";
+  for(let i=0;i<YUVA;i++){
+    const y = document.createElement("div");
+    y.className = "yuva" + (tepsi[i] ? " dolu" : "") + (patlayan && patlayan.includes(i) ? " patla" : "");
+    y.textContent = tepsi[i] ? tepsi[i].sim : "";
+    k.appendChild(y);
+  }
+}
+
+function bilgiYaz(){
+  $("bolum").textContent = bolum;
+  $("kalan").textContent = taslar.filter(t=>!t.gitti).length;
+  $("geriSayi").textContent = geriHak;
+  $("karSayi").textContent = karHak;
+  $("geriAl").disabled = geriHak<=0 || gecmis.length===0;
+  $("karistir").disabled = karHak<=0;
+}
+
+function sureYaz(){
+  const s = Math.floor((Date.now()-baslangic)/1000);
+  $("sure").textContent = Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+}
+
+function al(t, el){
+  if(!oynanir || t.gitti || kapaliMi(t)) return;
+  t.gitti = true;
+  gecmis.push(t);
+  // aynı simgenin yanına yerleştir
+  let yer = -1;
+  for(let i=tepsi.length-1;i>=0;i--){ if(tepsi[i].sim===t.sim){ yer = i+1; break; } }
+  if(yer<0) yer = tepsi.length;
+  tepsi.splice(yer, 0, t);
+  el.classList.add("giden");
+  setTimeout(()=>{ ciz(); }, 120);
+
+  const ayni = tepsi.filter(x=>x.sim===t.sim);
+  if(ayni.length>=3){
+    const indeksler = [];
+    tepsi.forEach((x,i)=>{ if(x.sim===t.sim && indeksler.length<3) indeksler.push(i); });
+    tepsiCiz(indeksler);
+    setTimeout(()=>{
+      tepsi = tepsi.filter(x=>x.sim!==t.sim || ayni.indexOf(x)>=3);
+      gecmis = [];
+      tepsiCiz(); bilgiYaz(); kontrol();
+    }, 260);
+  } else {
+    tepsiCiz(); bilgiYaz(); kontrol();
+  }
+}
+
+function kontrol(){
+  if(taslar.every(t=>t.gitti) && tepsi.length===0){
+    oynanir = false; clearInterval(sayacId);
+    perde("Bölüm tamam! 🎉", MESAJ[(bolum-1) % MESAJ.length], "Sıradaki bölüm →", ()=>{ bolum++; kur(); });
+    return;
+  }
+  if(tepsi.length >= YUVA){
+    oynanir = false; clearInterval(sayacId);
+    perde("Tepsi doldu 🫙", "Olsun, bir daha deneyelim. Ben hep buradayım 💛", "Tekrar dene", ()=>kur());
+  }
+}
+
+function perde(baslik, metin, dugme, isle){
+  $("pBaslik").textContent = baslik;
+  $("pMetin").textContent = metin;
+  $("pDugme").textContent = dugme;
+  $("pDugme").onclick = ()=>{ $("perde").style.display="none"; isle(); };
+  $("perde").style.display = "flex";
+}
+
+$("geriAl").onclick = ()=>{
+  if(geriHak<=0 || !gecmis.length) return;
+  const t = gecmis.pop();
+  const i = tepsi.indexOf(t);
+  if(i>=0) tepsi.splice(i,1);
+  t.gitti = false;
+  geriHak--;
+  oynanir = true;
+  ciz(); tepsiCiz(); bilgiYaz();
+};
+
+$("karistir").onclick = ()=>{
+  if(karHak<=0) return;
+  karHak--;
+  const kalanlar = taslar.filter(t=>!t.gitti);
+  const simgeler = kalanlar.map(t=>t.sim).sort(()=>Math.random()-0.5);
+  kalanlar.forEach((t,i)=>t.sim = simgeler[i]);
+  ciz(); bilgiYaz();
+};
+
+$("yeniden").onclick = ()=>{ bolum = 1; kur(); };
+
+kur();
+</script>
+</body>
+</html>
