@@ -166,7 +166,7 @@ $("kurBtn").onclick = ()=>{
     baglanti = c;
     c.on("open", ()=>{
       S = yeniOyun();
-      gonder({tip:"durum", S:disaAktar(S), rol:"guest"});
+      durumGonder();
       oyunuAc();
       log("💛 Karşı taraf bağlandı, oyun başladı!");
       ciz();
@@ -211,9 +211,15 @@ function gelenGuest(m){
 }
 function kacir(t){return String(t).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));}
 
-function yayinla(metin, kalp){
-  gonder({tip:"durum", S:disaAktar(S)});
-  if(metin){ gonder({tip:"log", metin, kalp}); log(metin); if(kalp) kalpYagmuru(); }
+function durumGonder(){
+  const kopya = disaAktar(S);
+  kopya.raf.host = kopya.raf.host.map(()=>"?");
+  gonder({tip:"durum", S:kopya});
+}
+function yayinla(metinBen, metinO, kalp){
+  durumGonder();
+  if(metinBen){ log(metinBen); if(kalp) kalpYagmuru(); }
+  if(metinO){ gonder({tip:"log", metin:metinO, kalp}); }
 }
 
 function oyunuAc(){ $("girisKart").style.display="none"; $("oyunAlani").style.display="block"; }
@@ -367,10 +373,11 @@ function hamleIsle(kim, tas){
   if(S.raf[kim].length===0 && S.torba.length===0) S.bitti=true;
 
   gecici=[]; secili=null;
-  const ad = kim===benim?"Sen":"O";
-  const metin = `📝 <b>${ad}</b>: ${kelimeler.map(k=>k.kelime+" ("+k.puan+")").join(", ")} → <b>+${toplam}</b>`;
-  yayinla(metin, toplam>=25);
-  if(S.bitti) yayinla("🎉 Oyun bitti! Kelimeler bitti ama seni sevmem bitmedi 💛");
+  const kelimeYazi = `${kelimeler.map(k=>k.kelime+" ("+k.puan+")").join(", ")} → <b>+${toplam}</b>`;
+  yayinla(`📝 <b>${kim==="host"?"Sen":"O"}</b>: ${kelimeYazi}`,
+          `📝 <b>${kim==="guest"?"Sen":"O"}</b>: ${kelimeYazi}`, toplam>=25);
+  if(S.bitti) yayinla("🎉 Oyun bitti! Kelimeler bitti ama seni sevmem bitmedi 💛",
+                      "🎉 Oyun bitti! Kelimeler bitti ama seni sevmem bitmedi 💛");
   ciz();
 }
 
@@ -381,7 +388,8 @@ function pasIsle(kim){
   S.sira = kim==="host"?"guest":"host";
   if(S.pasSayisi>=4) S.bitti=true;
   gecici=[];
-  yayinla(`⏭️ <b>${kim===benim?"Sen":"O"}</b> pas geçti.`);
+  yayinla(`⏭️ <b>${kim==="host"?"Sen":"O"}</b> pas geçti.`,
+          `⏭️ <b>${kim==="guest"?"Sen":"O"}</b> pas geçti.`);
   ciz();
 }
 
@@ -394,7 +402,8 @@ function degistirIsle(kim){
   for(let i=S.torba.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[S.torba[i],S.torba[j]]=[S.torba[j],S.torba[i]];}
   S.sira = kim==="host"?"guest":"host";
   gecici=[];
-  yayinla(`🔄 <b>${kim===benim?"Sen":"O"}</b> harflerini değiştirdi.`);
+  yayinla(`🔄 <b>${kim==="host"?"Sen":"O"}</b> harflerini değiştirdi.`,
+          `🔄 <b>${kim==="guest"?"Sen":"O"}</b> harflerini değiştirdi.`);
   ciz();
 }
 
