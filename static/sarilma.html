@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sarılma Oyunu 🤗</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#ffe0ec,#fff 45%,#ffd9c0);color:#4a148c;
+    display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden}
+  .wrap{width:100%;max-width:640px;text-align:center}
+  h1{font-size:30px;margin:0 0 4px;color:#c2185b}
+  p.alt{margin:0 0 20px;color:#6d4c6d;font-size:15px}
+  .kart{background:#fff;border-radius:22px;padding:22px;box-shadow:0 8px 28px #0001;margin-bottom:14px}
+  button{font:inherit;border:0;border-radius:26px;padding:12px 24px;background:#ec407a;color:#fff;cursor:pointer}
+  button.ikincil{background:#26a69a}
+  input{font:inherit;padding:10px 14px;border:2px solid #26a69a;border-radius:14px;outline:none;width:120px;text-transform:uppercase}
+  #kod{font-size:34px;font-weight:800;letter-spacing:8px;color:#ec407a;margin:8px 0 0}
+  #oyun{display:none}
+  .kisiler{display:flex;justify-content:center;gap:10px;align-items:center;margin:10px 0 6px}
+  .kisi{font-size:64px;transition:transform .25s}
+  .kisi.aktif{transform:scale(1.15)}
+  .arasi{font-size:34px}
+  .durumlar{display:flex;justify-content:center;gap:18px;font-size:14px;color:#6d4c6d;margin-bottom:12px}
+  .rozet{padding:6px 12px;border-radius:14px;background:#f8bbd0}
+  .rozet.on{background:#aed581;color:#33691e;font-weight:700}
+  .bar{height:26px;background:#f3e5f5;border-radius:16px;overflow:hidden;margin:14px 0 6px}
+  .dolu{height:100%;width:0%;background:linear-gradient(90deg,#f06292,#ec407a);transition:width .15s}
+  .sayi{font-size:44px;font-weight:800;color:#c2185b;margin:6px 0}
+  .mesaj{min-height:28px;font-size:18px;font-weight:700;color:#00796b}
+  #sarilBtn{width:100%;padding:26px;font-size:24px;border-radius:26px;background:#ec407a;
+    user-select:none;-webkit-user-select:none;touch-action:none}
+  #sarilBtn.basili{background:#ad1457;transform:scale(.98)}
+  .kucuk{font-size:13px;color:#8d6e8d;margin-top:10px}
+  .toplam{font-size:15px;color:#6d4c6d;margin-top:6px}
+  .kalp{position:fixed;font-size:30px;pointer-events:none;animation:uc 1.8s ease-out forwards}
+  @keyframes uc{to{transform:translateY(-200px) rotate(20deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Sarılma Oyunu 🤗</h1>
+  <p class="alt">Aynı anda ikiniz de butona basılı tutun. Bıraktığınız an sarılma bozulur!</p>
+
+  <div class="kart" id="giris">
+    <p>Biriniz oda kurar, kodu diğerine gönderir.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button id="kurBtn">Oda kur</button>
+      <input id="kodGiris" placeholder="KOD" maxlength="4">
+      <button class="ikincil" id="katilBtn">Katıl</button>
+    </div>
+    <p id="durum" class="kucuk">Önce bir seçim yap.</p>
+    <p id="kod"></p>
+  </div>
+
+  <div id="oyun">
+    <div class="kart">
+      <div class="kisiler">
+        <span class="kisi" id="ben">🧍</span>
+        <span class="arasi" id="arasi">· · ·</span>
+        <span class="kisi" id="o">🧍</span>
+      </div>
+      <div class="durumlar">
+        <span class="rozet" id="rozetBen">Sen: bıraktın</span>
+        <span class="rozet" id="rozetO">O: bıraktı</span>
+      </div>
+      <div class="sayi" id="sayac">0.0 sn</div>
+      <div class="bar"><div class="dolu" id="dolu"></div></div>
+      <div class="mesaj" id="mesaj">Hedef: 10 saniye birlikte 💞</div>
+      <div class="toplam" id="toplam">Bugünkü toplam sarılma: 0 sn · Rekor: 0.0 sn</div>
+    </div>
+    <button id="sarilBtn">🤗 SARIL (basılı tut)</button>
+    <p class="kucuk">Bilgisayarda fareyle bas ve bırakma; boşluk tuşu da çalışır.</p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const HEDEF = 10;                 // saniye
+let peer=null, baglanti=null, benHost=false;
+let benBasili=false, oBasili=false;
+let sure=0, rekor=0, toplam=0, sonAn=null, kutlandi=false;
+
+const rastgeleKod = ()=>Math.random().toString(36).slice(2,6).toUpperCase();
+const gonder = o => { if(baglanti && baglanti.open) baglanti.send(o); };
+
+function baglantiKur(c){
+  baglanti = c;
+  c.on("open", ()=>{ $("giris").style.display="none"; $("oyun").style.display="block"; });
+  c.on("data", m=>{
+    if(m.tip==="bas"){ oBasili = m.deger; ciz(); }
+    if(m.tip==="kutla"){ kalpYagmuru(); }
+  });
+  c.on("close", ()=>{ oBasili=false; $("mesaj").textContent="Bağlantı koptu 😢"; ciz(); });
+}
+
+$("kurBtn").onclick = ()=>{
+  const kod = rastgeleKod(); benHost = true;
+  $("durum").textContent = "Oda kuruluyor...";
+  peer = new Peer("sevgilim-sarilma-"+kod);
+  peer.on("open", ()=>{ $("kod").textContent = kod; $("durum").textContent="Kodu gönder, o katılınca başlıyoruz."; });
+  peer.on("error", e=>$("durum").textContent="Hata: "+e.type);
+  peer.on("connection", baglantiKur);
+};
+$("katilBtn").onclick = ()=>{
+  const kod = ($("kodGiris").value||"").trim().toUpperCase();
+  if(kod.length<4){ $("durum").textContent="4 haneli kodu yaz."; return; }
+  benHost = false;
+  $("durum").textContent = "Bağlanılıyor...";
+  peer = new Peer();
+  peer.on("open", ()=>{ baglantiKur(peer.connect("sevgilim-sarilma-"+kod,{reliable:true})); });
+  peer.on("error", e=>$("durum").textContent="Bağlanamadı ("+e.type+"). Kodu kontrol et.");
+};
+
+function basDurum(d){
+  if(benBasili===d) return;
+  benBasili = d;
+  gonder({tip:"bas", deger:d});
+  ciz();
+}
+const btn = $("sarilBtn");
+const bas = e=>{ e.preventDefault(); btn.classList.add("basili"); basDurum(true); };
+const birak = e=>{ btn.classList.remove("basili"); basDurum(false); };
+btn.addEventListener("mousedown", bas);
+btn.addEventListener("touchstart", bas, {passive:false});
+["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>btn.addEventListener(ev, birak));
+document.addEventListener("keydown", e=>{ if(e.code==="Space"){ e.preventDefault(); btn.classList.add("basili"); basDurum(true);} });
+document.addEventListener("keyup", e=>{ if(e.code==="Space"){ btn.classList.remove("basili"); basDurum(false);} });
+
+const mesajlar = [
+  "Biraz daha, bırakma! 🥰", "Ne güzel sarılıyorsun 💕", "Kalbim hızlandı 💓",
+  "Böyle kalalım 🫶", "Bu sarılma çok iyi geldi ✨"
+];
+
+function ciz(){
+  const ikisi = benBasili && oBasili;
+  $("rozetBen").textContent = "Sen: " + (benBasili?"sarıldın 🤗":"bıraktın");
+  $("rozetO").textContent = "O: " + (oBasili?"sarıldı 🤗":"bıraktı");
+  $("rozetBen").className = "rozet"+(benBasili?" on":"");
+  $("rozetO").className = "rozet"+(oBasili?" on":"");
+  $("ben").className = "kisi"+(benBasili?" aktif":"");
+  $("o").className = "kisi"+(oBasili?" aktif":"");
+  $("ben").textContent = ikisi?"🫂":(benBasili?"🙆":"🧍");
+  $("o").textContent  = ikisi?"💞":(oBasili?"🙆":"🧍");
+  $("arasi").textContent = ikisi?"💗":"· · ·";
+}
+
+setInterval(()=>{
+  const simdi = performance.now();
+  const fark = sonAn===null?0:(simdi-sonAn)/1000;
+  sonAn = simdi;
+  if(benBasili && oBasili){
+    sure += fark; toplam += fark;
+    if(sure>rekor) rekor = sure;
+    if(sure>=HEDEF && !kutlandi){
+      kutlandi = true;
+      $("mesaj").textContent = "Sarılma tamamlandı! Seni çok seviyorum 💛";
+      kalpYagmuru(); gonder({tip:"kutla"});
+    } else if(!kutlandi && Math.floor(sure*2)%7===0){
+      $("mesaj").textContent = mesajlar[Math.floor(sure/2)%mesajlar.length];
+    }
+  } else if(sure>0){
+    if(sure<HEDEF) $("mesaj").textContent = "Ayrıldınız! Baştan 🥺";
+    sure = 0; kutlandi = false;
+  }
+  $("sayac").textContent = sure.toFixed(1)+" sn";
+  $("dolu").style.width = Math.min(100, sure/HEDEF*100)+"%";
+  $("toplam").textContent = "Toplam sarılma: "+Math.floor(toplam)+" sn · Rekor: "+rekor.toFixed(1)+" sn";
+}, 100);
+
+function kalpYagmuru(){
+  for(let i=0;i<18;i++){
+    const k=document.createElement("div");
+    k.className="kalp"; k.textContent=["💛","💖","🤗","💕","✨","🫂"][i%6];
+    k.style.left=(Math.random()*92+4)+"vw"; k.style.top=(Math.random()*60+35)+"vh";
+    k.style.animationDelay=(Math.random()*0.6)+"s";
+    document.body.appendChild(k);
+    setTimeout(()=>k.remove(),2400);
+  }
+}
+ciz();
+</script>
+</body>
+</html>
