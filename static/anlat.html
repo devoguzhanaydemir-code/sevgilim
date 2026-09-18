@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <h1>Anlat Bakalım 🎭</h1>
-  <p class="alt">Tabu, Alnına Kart ve Emoji anlatmaca — üçü bir arada, ikimiz bir takımız 💛</p>
+  <p class="alt">Zor mod: 40 sn (her doğruda 3 sn azalır), 5 yasaklı kelime, 3 yanlış tahmin hakkı, emojide 5 hak 💛</p>
 
   <div class="kart" id="giris">
     <p>Biriniz oda kurar, 4 haneli kodu diğerine gönderir.</p>
@@ -65,9 +65,9 @@
   <div class="kart" id="modSecim">
     <p><b>Sıra sende!</b> Hangi modda anlatmak istersin?</p>
     <div class="modlar">
-      <div class="mod" data-m="tabu"><span class="i">🚫</span><div class="n">Tabu</div><div class="d">Yasaklı kelimeleri kullanma</div></div>
+      <div class="mod" data-m="tabu"><span class="i">🚫</span><div class="n">Tabu</div><div class="d">5 yasaklı kelime, 3 hak</div></div>
       <div class="mod" data-m="alin"><span class="i">🃏</span><div class="n">Alnına Kart</div><div class="d">Serbest anlat, o tahmin etsin</div></div>
-      <div class="mod" data-m="emoji"><span class="i">😍</span><div class="n">Emoji</div><div class="d">Sadece emoji ile anlat</div></div>
+      <div class="mod" data-m="emoji"><span class="i">😍</span><div class="n">Emoji</div><div class="d">Sadece 5 emoji hakkın var</div></div>
     </div>
   </div>
 
@@ -86,48 +86,55 @@
       <button class="ikincil" id="bildiBtn">Bildi 💛</button>
     </div>
     <div id="log"></div>
-    <p class="kucuk">Doğru tahmin otomatik anlaşılır. Her doğru cevaptan sonra roller değişir.</p>
+    <p class="kucuk">Doğru tahmin otomatik anlaşılır. 3 yanlış tahminde kart yanar ve sıra değişir.</p>
   </div>
 </div>
 
 <script>
 const $ = id=>document.getElementById(id);
-const SURE = 60;
+const SURE = 40;   // her doğru cevapta 3 sn daha kısalır (alt sınır 20)
 
 const TABU = [
-  ["Hemşire",["hastane","iğne","doktor"]],
-  ["Kahve",["fincan","sabah","kafein"]],
-  ["Sarılmak",["kucak","kol","sıcak"]],
-  ["Düğün",["gelin","damat","nikah"]],
-  ["Telefon",["arama","mesaj","ekran"]],
-  ["Yağmur",["şemsiye","ıslak","bulut"]],
-  ["Pizza",["peynir","dilim","İtalyan"]],
-  ["Uyku",["yatak","rüya","yorgan"]],
-  ["Deniz",["tuz","dalga","kum"]],
-  ["Kedi",["miyav","pati","tüy"]],
-  ["Sinema",["film","bilet","patlamış mısır"]],
-  ["Doğum günü",["pasta","mum","hediye"]],
-  ["Kalp",["aşk","atış","kan"]],
-  ["Tatil",["deniz","otel","izin"]],
-  ["Kitap",["sayfa","okumak","yazar"]],
-  ["Nöbet",["gece","hastane","vardiya"]],
-  ["Çikolata",["tatlı","kakao","bar"]],
-  ["Araba",["direksiyon","tekerlek","yol"]],
+  ["Hemşire",["hastane","iğne","doktor","hasta","beyaz"]],
+  ["Kahve",["fincan","sabah","kafein","içmek","sıcak"]],
+  ["Sarılmak",["kucak","kol","sıcak","sevgi","tutmak"]],
+  ["Özlemek",["uzak","hasret","beklemek","görmek","sevgi"]],
+  ["Gurur",["kibir","onur","başarı","büyük","kendi"]],
+  ["Kıskanmak",["aşk","başkası","bakmak","sinir","sevgili"]],
+  ["Nöbet",["gece","hastane","vardiya","çalışmak","sabah"]],
+  ["Anı",["hatıra","geçmiş","fotoğraf","unutmak","yaşamak"]],
+  ["Sabır",["beklemek","zaman","dayanmak","zor","sakin"]],
+  ["Güven",["inanmak","emin","dost","söz","sadakat"]],
+  ["Sürpriz",["hediye","beklenmedik","şaşırmak","doğum günü","saklamak"]],
+  ["Vedalaşmak",["ayrılık","güle güle","el sallamak","gitmek","son"]],
+  ["Heyecan",["kalp","çarpıntı","beklemek","stres","mutluluk"]],
+  ["Alışkanlık",["her gün","rutin","tekrar","bırakmak","sigara"]],
+  ["Kahkaha",["gülmek","komik","ses","şaka","mutlu"]],
+  ["Yalnızlık",["tek","kimse","boş","ev","hüzün"]],
+  ["Randevu",["buluşma","saat","doktor","gitmek","tarih"]],
+  ["Şefkat",["sevgi","anne","yumuşak","bakım","merhamet"]],
+  ["Tesadüf",["rastlantı","denk gelmek","şans","kader","beklenmedik"]],
+  ["Pişmanlık",["keşke","hata","geçmiş","üzülmek","af"]],
 ];
-const ALIN = ["dondurma","yıldız","kar topu","gitar","sabah alarmı","uçak","selfie","kahvaltı","ay ışığı",
-  "hastane koridoru","dans etmek","el ele tutuşmak","ilk buluşma","sürpriz hediye","piknik","köpek",
-  "yağmurda yürümek","film gecesi","çay demlemek","gece yarısı sohbeti","valiz toplamak","kahkaha"];
+const ALIN = ["ilk göz ağrısı","uzun mesafe ilişki","gece vardiyası","sabır taşı","içi geçmek",
+  "göz teması","huzur","nostalji","tesadüf","kader","umut","pişmanlık","affetmek","söz vermek",
+  "gurbet","özlem","ilk adım","sürpriz yapmak","kalp çarpıntısı","yorgun ama mutlu","ilk kez korkmak",
+  "sözünü tutmak","yarım kalan cümle","gözden kaçan detay","sessiz kalmak","vazgeçmemek"];
 const EMOJILER = ["😀","😍","🥰","😂","😉","😴","🤒","🤗","👩‍⚕️","💉","💊","🩺","❤️","💛","💔","🌹","🌙","⭐","☀️",
   "🌧️","❄️","🍕","🍫","☕","🍰","🎂","🎁","🎈","🎵","🎬","📱","💻","🚗","✈️","🏥","🏠","🐱","🐶","👫","💃","🕺","💍","🍿","🧳","📚","⏰","🔥","💤","🫂","✨"];
 
 let peer=null, baglanti=null, benHost=false;
 let rol="anlatan", mod="tabu", kart=null, puan=0, kalan=SURE, sayacId=null, aktif=false;
+let yanlis=0, kacan=0, emojiSayisi=0;
+const HAK = 3;      // yanlış tahmin hakkı
+const EMOJI_LIMIT = 5;
 
 const gonder = o=>{ if(baglanti&&baglanti.open) baglanti.send(o); };
 const rastgeleKod = ()=>Math.random().toString(36).slice(2,6).toUpperCase();
 const log=t=>{const d=document.createElement("div"); d.innerHTML=t; $("log").appendChild(d); $("log").scrollTop=1e6;};
 const sadelestir = s => s.toLocaleLowerCase("tr").replace(/[^a-zçğıöşü ]/g,"").trim();
 const rast = a => a[Math.floor(Math.random()*a.length)];
+const puanYaz = ()=>$("puan").textContent = "Birlikte: "+puan+" · Kaçan: "+kacan;
 
 /* bağlantı */
 function kur(c){
@@ -162,13 +169,23 @@ function gelen(m){
   }
   else if(m.tip==="tahmin"){
     log("💬 <b>O:</b> "+m.metin);
-    if(rol==="anlatan" && kart && sadelestir(m.metin)===sadelestir(kelimeAl())) dogru();
+    if(rol==="anlatan" && kart && aktif){
+      if(sadelestir(m.metin)===sadelestir(kelimeAl())) dogru();
+      else {
+        yanlis++;
+        log("❌ Yanlış ("+yanlis+"/"+HAK+")");
+        gonder({tip:"yanlis", kalan:HAK-yanlis});
+        if(yanlis>=HAK){ kartYandi(); }
+      }
+    }
   }
   else if(m.tip==="emoji"){ if(rol==="tahminci"){ $("kartAlan").innerHTML='<div class="emojiEkran">'+m.dizi+'</div>'; } }
   else if(m.tip==="dogru"){
-    puan=m.puan; $("puan").textContent="Birlikte: "+puan;
+    puan=m.puan; puanYaz();
     log("✅ <b>Bildiniz:</b> "+m.kelime+" 💛"); kalpYagmuru();
   }
+  else if(m.tip==="yanlis"){ log("❌ Yanlış — kalan hak: "+m.kalan); }
+  else if(m.tip==="kacti"){ kacan++; puanYaz(); log("🔥 Kart yandı! Cevap: <b>"+m.kelime+"</b>"); }
   else if(m.tip==="sec"){ puan=m.puan!==undefined?m.puan:puan; rol="anlatan"; modSor(); }
   else if(m.tip==="modBekle"){ $("oyun").style.display="block"; $("modSecim").style.display="none";
     $("kartAlan").innerHTML='<span class="gizli">O mod seçiyor, birazdan başlıyoruz...</span>'; }
@@ -191,13 +208,13 @@ document.querySelectorAll(".mod").forEach(el=>el.onclick=()=>{
 });
 
 function baslat(){
-  kalan=SURE; aktif=true;
+  kalan = Math.max(20, SURE - puan*3); aktif=true; yanlis=0; emojiSayisi=0;
   const modAd = {tabu:"🚫 Tabu", alin:"🃏 Alnına Kart", emoji:"😍 Emoji"}[mod];
   $("modYazi").textContent = modAd;
   $("rolYazi").textContent = rol==="anlatan" ? "Sen anlat 🗣️" : "Sen tahmin et 🤔";
   $("tahmin").disabled = rol==="anlatan";
   $("pasBtn").disabled = $("bildiBtn").disabled = rol!=="anlatan";
-  $("puan").textContent = "Birlikte: "+puan;
+  puanYaz();
   kartCiz();
   clearInterval(sayacId);
   $("sayac").textContent="⏱ "+kalan;
@@ -205,7 +222,7 @@ function baslat(){
     kalan--; $("sayac").textContent="⏱ "+kalan;
     if(kalan<=0){ clearInterval(sayacId); aktif=false;
       if(rol==="anlatan"){ log("⏰ Süre doldu! Cevap: <b>"+kelimeAl()+"</b>");
-        gonder({tip:"tahmin",metin:"(süre doldu — cevap: "+kelimeAl()+")"}); setTimeout(sirayiVer,1500); } }
+        kacan++; puanYaz(); gonder({tip:"kacti", kelime:kelimeAl()}); setTimeout(sirayiVer,1500); } }
   },1000);
 }
 
@@ -228,18 +245,26 @@ function kartCiz(){
       '<div class="kucuk">Emojilere tıkla, karşı tarafın ekranında belirsin</div>';
     let dizi="";
     a.querySelectorAll(".paletler span").forEach(s=>s.onclick=()=>{
+      if(emojiSayisi>=EMOJI_LIMIT){ log("🚫 Emoji hakkın bitti ("+EMOJI_LIMIT+")"); return; }
+      emojiSayisi++;
       dizi += s.textContent; $("secilen").textContent = dizi;
       gonder({tip:"emoji", dizi});
     });
   }
 }
 
+function kartYandi(){
+  aktif=false; clearInterval(sayacId); kacan++; puanYaz();
+  log("🔥 Kart yandı! Cevap: <b>"+kelimeAl()+"</b>");
+  gonder({tip:"kacti", kelime:kelimeAl()});
+  setTimeout(sirayiVer, 1700);
+}
 function dogru(){
   if(!aktif) return;
   aktif=false; clearInterval(sayacId); puan++;
   const k = kelimeAl();
   log("✅ <b>Bildi!</b> Cevap: "+k+" 💛");
-  $("puan").textContent="Birlikte: "+puan;
+  puanYaz();
   gonder({tip:"dogru", kelime:k, puan});
   kalpYagmuru();
   setTimeout(sirayiVer, 1700);
@@ -262,9 +287,10 @@ $("tahmin").addEventListener("keydown",e=>{ if(e.key==="Enter") $("gonderBtn").c
 $("bildiBtn").onclick=()=>{ if(rol==="anlatan") dogru(); };
 $("pasBtn").onclick=()=>{
   if(rol!=="anlatan") return;
+  kacan++; puanYaz(); gonder({tip:"kacti", kelime:kelimeAl()});
   kart = mod==="tabu" ? rast(TABU) : rast(ALIN);
   gonder({tip:"tur", mod, kart, anlatanBen:true, puan});
-  log("🔄 Yeni kart alındı."); baslat();
+  log("🔄 Pas: yeni kart (kaçan +1)"); baslat();
 };
 
 function kalpYagmuru(){
