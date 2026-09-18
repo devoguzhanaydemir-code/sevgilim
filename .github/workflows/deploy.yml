@@ -28,10 +28,14 @@ jobs:
       # Eksik web dosyalarını (index.html, ikonlar) oluşturur; mevcut kodu ezmez
       - run: flutter create --platforms web --project-name sevgilim .
       - run: flutter pub get
-      - run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+      - run: flutter build web --release --base-href "/${{ github.event.repository.name }}/oyun/"
 
-      # Ek statik sayfalar (ör. kelime oyunu)
-      - run: cp -r static/. build/web/ || true
+      # Flutter uygulamasi /oyun/ altina, statik sayfalar koke
+      - run: |
+          mv build/web build/app
+          mkdir -p build/web
+          mv build/app build/web/oyun
+          cp -r static/. build/web/
 
       - uses: actions/upload-pages-artifact@v3
         with:
