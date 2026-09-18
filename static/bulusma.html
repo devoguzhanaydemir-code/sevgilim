@@ -28,6 +28,7 @@
   input:focus{border-color:#ffd54f}
   button{font:inherit;border:0;border-radius:16px;padding:12px 22px;background:#ffd54f;color:#1a1440;
     font-weight:800;cursor:pointer;margin-top:12px}
+  button:disabled{opacity:.5;cursor:default}
   button.sil{background:transparent;color:#ff8a80;padding:4px 8px;font-size:13px;margin:0;font-weight:600}
   ul{list-style:none;padding:0;margin:0}
   li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed #ffffff22}
@@ -37,7 +38,7 @@
   li .sol{flex:1}
   li.gecmis{opacity:.45}
   .rozet{font-size:12px;background:#ffd54f;color:#1a1440;border-radius:10px;padding:2px 8px;font-weight:800}
-  .bilgi{font-size:12px;color:#9fa8da;text-align:center;margin-top:10px}
+  .bilgi{font-size:12px;color:#9fa8da;text-align:center;margin-top:10px;min-height:16px}
   footer{margin-top:18px;color:#ffd54f;font-size:14px;text-align:center}
   a.geri{color:#cfd8dc;font-size:14px;text-decoration:none}
 </style>
@@ -46,10 +47,10 @@
 <div class="wrap">
   <a class="geri" href="./">← ana sayfa</a>
   <h1>Buluşma Sayacı 💛</h1>
-  <p class="alt">Bir sonraki buluşmamıza kalan zaman</p>
+  <p class="alt">Bir sonraki buluşmamıza kalan zaman · ikimiz de aynı listeyi görüyoruz</p>
 
   <div class="kart buyuk">
-    <div class="nerede" id="nerede">—</div>
+    <div class="nerede" id="nerede">Yükleniyor…</div>
     <div class="nezaman" id="nezaman"></div>
     <div class="sayac">
       <div class="blok"><div class="s" id="g">0</div><div class="e">gün</div></div>
@@ -62,7 +63,7 @@
 
   <div class="kart">
     <div class="satir">
-      <div><label>Nerede / ne</label><input id="iAd" placeholder="Ayrancı Orhan"></div>
+      <div><label>Nerede / ne</label><input id="iAd" placeholder="Ayrancı Orhan" maxlength="40"></div>
       <div><label>Tarih</label><input id="iTarih" placeholder="19.09.2026" inputmode="numeric"></div>
       <div><label>Saat</label><input id="iSaat" placeholder="09:30" inputmode="numeric"></div>
     </div>
@@ -71,26 +72,31 @@
   </div>
 
   <div class="kart">
-    <ul id="liste"></ul>
+    <ul id="liste"><li>Yükleniyor…</li></ul>
   </div>
 
   <footer>— Oğuzhan</footer>
 </div>
 
 <script>
-/* ---- Ortak kayıt yeri -------------------------------------------------
-   FIREBASE boş bırakılırsa kayıtlar sadece bu tarayıcıda tutulur.
-   Firebase Realtime Database adresi yazılırsa ikimizde de aynı liste görünür.
-   Örnek: const FIREBASE = "https://xxxx-default-rtdb.firebaseio.com";
------------------------------------------------------------------------ */
-const FIREBASE = "";
-const YOL = FIREBASE ? FIREBASE.replace(/\/$/,"") + "/bulusmalar.json" : null;
+/* Ortak kayıt yeri: keyvalue.immanuel.co (hesapsız, ücretsiz).
+   Her buluşma ayrı anahtarda tutulur: sayi, k0, k1, ...            */
+const AK  = "e45cv4wm";
+const KOK = "https://keyvalue.immanuel.co/api/KeyVal";
 
 const $ = id => document.getElementById(id);
-const VARSAYILAN = [{ad:"Ayrancı Orhan", tarih:"19.09.2026", saat:"09:30"}];
-let kayitlar = [];
+let kayitlar = [], mesgul = false;
 
 const ikiHane = n => String(n).padStart(2,"0");
+const kodla = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o))))
+                   .replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
+function coz(s){
+  try{
+    s = s.replace(/^"|"$/g,"").replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length % 4) s += "=";
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s), c=>c.charCodeAt(0))));
+  }catch(e){ return null; }
+}
 function zaman(k){
   const [g,a,y] = (k.tarih||"").split(".").map(Number);
   const [sa,dk] = (k.saat||"00:00").split(":").map(Number);
@@ -98,55 +104,47 @@ function zaman(k){
 }
 const gecerli = k => k && k.ad && /^\d{2}\.\d{2}\.\d{4}$/.test(k.tarih||"") && /^\d{1,2}:\d{2}$/.test(k.saat||"");
 
-/* ---- depolama ---- */
-function yerelYaz(){ try{ localStorage.setItem("bulusmalar", JSON.stringify(kayitlar)); }catch(e){} }
-function yerelOku(){
-  try{ const h = JSON.parse(localStorage.getItem("bulusmalar")||"null"); if(Array.isArray(h)) return h; }catch(e){}
-  return null;
-}
-async function oku(){
-  if(YOL){
-    try{
-      const r = await fetch(YOL,{cache:"no-store"});
-      const v = await r.json();
-      if(Array.isArray(v)) return v;
-      if(v && typeof v==="object") return Object.values(v);
-      return VARSAYILAN.slice();
-    }catch(e){ $("durum").textContent = "Sunucuya ulaşılamadı, yerel liste gösteriliyor."; }
-  }
-  return yerelOku() || VARSAYILAN.slice();
-}
-async function yaz(){
-  yerelYaz();
-  if(!YOL) return;
-  try{
-    await fetch(YOL,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(kayitlar)});
-    $("durum").textContent = "Kaydedildi ✓ ikimiz de görüyoruz";
-  }catch(e){ $("durum").textContent = "Kaydedilemedi, tekrar dene."; }
+const getir = async yol => (await fetch(KOK + "/GetValue/" + AK + "/" + yol, {cache:"no-store"})).text();
+const yaz   = async (anahtar, deger) => fetch(KOK + "/UpdateValue/" + AK + "/" + anahtar + "/" + deger, {method:"POST"});
+
+async function sunucudanOku(){
+  const s = parseInt((await getir("sayi")).replace(/"/g,""), 10);
+  const n = isNaN(s) ? 0 : s;
+  const parcalar = await Promise.all(
+    Array.from({length:n}, (_,i)=>getir("k"+i).then(coz).catch(()=>null))
+  );
+  return parcalar.filter(gecerli);
 }
 
-/* ---- ekran ---- */
+async function sunucuyaYaz(liste){
+  for(let i=0;i<liste.length;i++) await yaz("k"+i, kodla(liste[i]));
+  await yaz("sayi", liste.length);
+}
+
 function sirala(){ kayitlar.sort((a,b)=>zaman(a)-zaman(b)); }
 
 function listeCiz(){
   sirala();
   const simdi = Date.now();
-  $("liste").innerHTML = kayitlar.length ? "" : "<li>Henüz buluşma yok. Hadi bir tane ekle 💛</li>";
+  const sonraki = kayitlar.find(x=>zaman(x)>=simdi);
+  const ul = $("liste");
+  ul.innerHTML = "";
+  if(!kayitlar.length){ ul.innerHTML = "<li>Henüz buluşma yok. Hadi bir tane ekle 💛</li>"; return; }
   kayitlar.forEach((k,i)=>{
     const li = document.createElement("li");
     if(zaman(k) < simdi) li.className = "gecmis";
     li.innerHTML = '<div class="sol"><div class="ad"></div><div class="tar"></div></div>';
     li.querySelector(".ad").textContent = k.ad;
     li.querySelector(".tar").textContent = k.tarih + " · " + k.saat;
-    if(zaman(k) >= simdi && !li.dataset.r){
-      const ilk = kayitlar.find(x=>zaman(x)>=simdi);
-      if(ilk===k){ const b=document.createElement("span"); b.className="rozet"; b.textContent="sıradaki"; li.appendChild(b); }
+    if(k === sonraki){
+      const b = document.createElement("span"); b.className = "rozet"; b.textContent = "sıradaki";
+      li.appendChild(b);
     }
     const sil = document.createElement("button");
     sil.className = "sil"; sil.textContent = "sil";
-    sil.onclick = async ()=>{ kayitlar.splice(i,1); await yaz(); listeCiz(); };
+    sil.onclick = ()=>kaldir(i);
     li.appendChild(sil);
-    $("liste").appendChild(li);
+    ul.appendChild(li);
   });
 }
 
@@ -174,23 +172,48 @@ function sayacCiz(){
                         : g===1 ? "Yarın! 🥰" : "Seni özlüyorum 💛";
 }
 
+async function kaldir(i){
+  if(mesgul) return; mesgul = true;
+  $("durum").textContent = "Siliniyor…";
+  try{
+    const taze = await sunucudanOku();
+    const hedef = kayitlar[i];
+    const yeni = taze.filter(x=>!(x.ad===hedef.ad && x.tarih===hedef.tarih && x.saat===hedef.saat));
+    await sunucuyaYaz(yeni);
+    kayitlar = yeni;
+    $("durum").textContent = "Silindi ✓";
+  }catch(e){ $("durum").textContent = "Silinemedi, tekrar dene."; }
+  mesgul = false; listeCiz(); sayacCiz();
+}
+
 $("ekle").onclick = async ()=>{
+  if(mesgul) return;
   const k = {ad:$("iAd").value.trim(), tarih:$("iTarih").value.trim(), saat:$("iSaat").value.trim()};
   if(!gecerli(k)){ $("durum").textContent = "Tarih GG.AA.YYYY, saat SS:DD olmalı."; return; }
-  kayitlar.push(k); await yaz();
-  $("iAd").value=$("iTarih").value=$("iSaat").value="";
-  listeCiz(); sayacCiz();
+  mesgul = true; $("ekle").disabled = true; $("durum").textContent = "Kaydediliyor…";
+  try{
+    const taze = await sunucudanOku();
+    taze.push(k);
+    await sunucuyaYaz(taze);
+    kayitlar = taze;
+    $("iAd").value = $("iTarih").value = $("iSaat").value = "";
+    $("durum").textContent = "Kaydedildi ✓ ikimiz de görüyoruz";
+  }catch(e){ $("durum").textContent = "Kaydedilemedi, tekrar dene."; }
+  mesgul = false; $("ekle").disabled = false; listeCiz(); sayacCiz();
 };
 
 (async ()=>{
-  kayitlar = (await oku()).filter(gecerli);
-  if(!kayitlar.length) kayitlar = VARSAYILAN.slice();
+  try{ kayitlar = await sunucudanOku(); }
+  catch(e){ $("durum").textContent = "Listeye ulaşılamadı."; }
   listeCiz(); sayacCiz();
   setInterval(sayacCiz, 1000);
-  if(YOL) setInterval(async ()=>{
-    const y = (await oku()).filter(gecerli);
-    if(JSON.stringify(y)!==JSON.stringify(kayitlar)){ kayitlar=y; listeCiz(); sayacCiz(); }
-  }, 8000);
+  setInterval(async ()=>{
+    if(mesgul) return;
+    try{
+      const y = await sunucudanOku();
+      if(JSON.stringify(y) !== JSON.stringify(kayitlar)){ kayitlar = y; listeCiz(); sayacCiz(); }
+    }catch(e){}
+  }, 10000);
 })();
 </script>
 </body>
