@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buluşma Sayacı 💛</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#0b1030,#1a1440 55%,#2b1b3d);color:#fff;
+    display:flex;justify-content:center;padding:22px}
+  .wrap{width:100%;max-width:640px}
+  h1{font-size:30px;margin:0 0 4px;color:#ffd54f;text-shadow:0 0 22px #ffd54f66;text-align:center}
+  p.alt{margin:0 0 18px;color:#cfd8dc;text-align:center;font-size:15px}
+  .kart{background:#ffffff12;border:1px solid #ffffff22;border-radius:22px;padding:20px;margin-bottom:14px}
+  .buyuk{text-align:center}
+  .nerede{font-size:24px;font-weight:800;color:#fff}
+  .nezaman{font-size:15px;color:#cfd8dc;margin-top:2px}
+  .sayac{display:flex;justify-content:center;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
+  .blok{background:#00000033;border-radius:16px;padding:10px 14px;min-width:78px}
+  .blok .s{font-size:32px;font-weight:800;color:#ffd54f;line-height:1}
+  .blok .e{font-size:12px;color:#cfd8dc;margin-top:4px}
+  label{display:block;font-size:13px;color:#cfd8dc;margin:0 0 4px}
+  .satir{display:flex;gap:10px;flex-wrap:wrap}
+  .satir>div{flex:1;min-width:130px}
+  input{font:inherit;width:100%;padding:10px 12px;border:1px solid #ffffff33;border-radius:12px;
+    background:#00000033;color:#fff;outline:none}
+  input:focus{border-color:#ffd54f}
+  button{font:inherit;border:0;border-radius:16px;padding:12px 22px;background:#ffd54f;color:#1a1440;
+    font-weight:800;cursor:pointer;margin-top:12px}
+  button.sil{background:transparent;color:#ff8a80;padding:4px 8px;font-size:13px;margin:0;font-weight:600}
+  ul{list-style:none;padding:0;margin:0}
+  li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed #ffffff22}
+  li:last-child{border-bottom:0}
+  li .ad{font-weight:700}
+  li .tar{font-size:13px;color:#cfd8dc}
+  li .sol{flex:1}
+  li.gecmis{opacity:.45}
+  .rozet{font-size:12px;background:#ffd54f;color:#1a1440;border-radius:10px;padding:2px 8px;font-weight:800}
+  .bilgi{font-size:12px;color:#9fa8da;text-align:center;margin-top:10px}
+  footer{margin-top:18px;color:#ffd54f;font-size:14px;text-align:center}
+  a.geri{color:#cfd8dc;font-size:14px;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="geri" href="./">← ana sayfa</a>
+  <h1>Buluşma Sayacı 💛</h1>
+  <p class="alt">Bir sonraki buluşmamıza kalan zaman</p>
+
+  <div class="kart buyuk">
+    <div class="nerede" id="nerede">—</div>
+    <div class="nezaman" id="nezaman"></div>
+    <div class="sayac">
+      <div class="blok"><div class="s" id="g">0</div><div class="e">gün</div></div>
+      <div class="blok"><div class="s" id="s">0</div><div class="e">saat</div></div>
+      <div class="blok"><div class="s" id="d">0</div><div class="e">dakika</div></div>
+      <div class="blok"><div class="s" id="sn">0</div><div class="e">saniye</div></div>
+    </div>
+    <div class="nezaman" id="mesaj">Seni özlüyorum 💛</div>
+  </div>
+
+  <div class="kart">
+    <div class="satir">
+      <div><label>Nerede / ne</label><input id="iAd" placeholder="Ayrancı Orhan"></div>
+      <div><label>Tarih</label><input id="iTarih" placeholder="19.09.2026" inputmode="numeric"></div>
+      <div><label>Saat</label><input id="iSaat" placeholder="09:30" inputmode="numeric"></div>
+    </div>
+    <button id="ekle">+ Buluşma ekle</button>
+    <div class="bilgi" id="durum"></div>
+  </div>
+
+  <div class="kart">
+    <ul id="liste"></ul>
+  </div>
+
+  <footer>— Oğuzhan</footer>
+</div>
+
+<script>
+/* ---- Ortak kayıt yeri -------------------------------------------------
+   FIREBASE boş bırakılırsa kayıtlar sadece bu tarayıcıda tutulur.
+   Firebase Realtime Database adresi yazılırsa ikimizde de aynı liste görünür.
+   Örnek: const FIREBASE = "https://xxxx-default-rtdb.firebaseio.com";
+----------------------------------------------------------------------- */
+const FIREBASE = "";
+const YOL = FIREBASE ? FIREBASE.replace(/\/$/,"") + "/bulusmalar.json" : null;
+
+const $ = id => document.getElementById(id);
+const VARSAYILAN = [{ad:"Ayrancı Orhan", tarih:"19.09.2026", saat:"09:30"}];
+let kayitlar = [];
+
+const ikiHane = n => String(n).padStart(2,"0");
+function zaman(k){
+  const [g,a,y] = (k.tarih||"").split(".").map(Number);
+  const [sa,dk] = (k.saat||"00:00").split(":").map(Number);
+  return new Date(y, (a||1)-1, g||1, sa||0, dk||0, 0).getTime();
+}
+const gecerli = k => k && k.ad && /^\d{2}\.\d{2}\.\d{4}$/.test(k.tarih||"") && /^\d{1,2}:\d{2}$/.test(k.saat||"");
+
+/* ---- depolama ---- */
+function yerelYaz(){ try{ localStorage.setItem("bulusmalar", JSON.stringify(kayitlar)); }catch(e){} }
+function yerelOku(){
+  try{ const h = JSON.parse(localStorage.getItem("bulusmalar")||"null"); if(Array.isArray(h)) return h; }catch(e){}
+  return null;
+}
+async function oku(){
+  if(YOL){
+    try{
+      const r = await fetch(YOL,{cache:"no-store"});
+      const v = await r.json();
+      if(Array.isArray(v)) return v;
+      if(v && typeof v==="object") return Object.values(v);
+      return VARSAYILAN.slice();
+    }catch(e){ $("durum").textContent = "Sunucuya ulaşılamadı, yerel liste gösteriliyor."; }
+  }
+  return yerelOku() || VARSAYILAN.slice();
+}
+async function yaz(){
+  yerelYaz();
+  if(!YOL) return;
+  try{
+    await fetch(YOL,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(kayitlar)});
+    $("durum").textContent = "Kaydedildi ✓ ikimiz de görüyoruz";
+  }catch(e){ $("durum").textContent = "Kaydedilemedi, tekrar dene."; }
+}
+
+/* ---- ekran ---- */
+function sirala(){ kayitlar.sort((a,b)=>zaman(a)-zaman(b)); }
+
+function listeCiz(){
+  sirala();
+  const simdi = Date.now();
+  $("liste").innerHTML = kayitlar.length ? "" : "<li>Henüz buluşma yok. Hadi bir tane ekle 💛</li>";
+  kayitlar.forEach((k,i)=>{
+    const li = document.createElement("li");
+    if(zaman(k) < simdi) li.className = "gecmis";
+    li.innerHTML = '<div class="sol"><div class="ad"></div><div class="tar"></div></div>';
+    li.querySelector(".ad").textContent = k.ad;
+    li.querySelector(".tar").textContent = k.tarih + " · " + k.saat;
+    if(zaman(k) >= simdi && !li.dataset.r){
+      const ilk = kayitlar.find(x=>zaman(x)>=simdi);
+      if(ilk===k){ const b=document.createElement("span"); b.className="rozet"; b.textContent="sıradaki"; li.appendChild(b); }
+    }
+    const sil = document.createElement("button");
+    sil.className = "sil"; sil.textContent = "sil";
+    sil.onclick = async ()=>{ kayitlar.splice(i,1); await yaz(); listeCiz(); };
+    li.appendChild(sil);
+    $("liste").appendChild(li);
+  });
+}
+
+function sayacCiz(){
+  const simdi = Date.now();
+  sirala();
+  const k = kayitlar.find(x=>zaman(x)>=simdi);
+  if(!k){
+    $("nerede").textContent = "Planlanmış buluşma yok";
+    $("nezaman").textContent = "";
+    ["g","s","d","sn"].forEach(id=>$(id).textContent="0");
+    $("mesaj").textContent = "Bir tarih belirleyelim mi? 💛";
+    return;
+  }
+  $("nerede").textContent = k.ad;
+  $("nezaman").textContent = k.tarih + " · " + k.saat;
+  let f = Math.max(0, zaman(k)-simdi);
+  const g = Math.floor(f/86400000); f -= g*86400000;
+  const s = Math.floor(f/3600000);  f -= s*3600000;
+  const d = Math.floor(f/60000);    f -= d*60000;
+  const sn = Math.floor(f/1000);
+  $("g").textContent=g; $("s").textContent=ikiHane(s); $("d").textContent=ikiHane(d); $("sn").textContent=ikiHane(sn);
+  $("mesaj").textContent = g===0 && s<3 ? "Neredeyse geldi, kalbim hızlandı 💓"
+                        : g===0 ? "Bugün görüşüyoruz! 🎉"
+                        : g===1 ? "Yarın! 🥰" : "Seni özlüyorum 💛";
+}
+
+$("ekle").onclick = async ()=>{
+  const k = {ad:$("iAd").value.trim(), tarih:$("iTarih").value.trim(), saat:$("iSaat").value.trim()};
+  if(!gecerli(k)){ $("durum").textContent = "Tarih GG.AA.YYYY, saat SS:DD olmalı."; return; }
+  kayitlar.push(k); await yaz();
+  $("iAd").value=$("iTarih").value=$("iSaat").value="";
+  listeCiz(); sayacCiz();
+};
+
+(async ()=>{
+  kayitlar = (await oku()).filter(gecerli);
+  if(!kayitlar.length) kayitlar = VARSAYILAN.slice();
+  listeCiz(); sayacCiz();
+  setInterval(sayacCiz, 1000);
+  if(YOL) setInterval(async ()=>{
+    const y = (await oku()).filter(gecerli);
+    if(JSON.stringify(y)!==JSON.stringify(kayitlar)){ kayitlar=y; listeCiz(); sayacCiz(); }
+  }, 8000);
+})();
+</script>
+</body>
+</html>
