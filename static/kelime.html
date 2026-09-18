@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İkimizin Kelime Oyunu 💛</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root{
+    --nane:#26a69a; --pembe:#ec407a; --koyu:#00332c; --sari:#ffd54f;
+    --bg1:#e0f2f1; --bg2:#fce4ec;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,var(--bg1),#fff 45%,var(--bg2));min-height:100vh;color:var(--koyu)}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  h1{font-size:24px;margin:8px 0 4px}
+  .alt{color:#527;font-size:14px;margin:0 0 16px}
+  .kart{background:#fff;border-radius:18px;padding:18px;box-shadow:0 6px 24px #0001;margin-bottom:14px}
+  button{font:inherit;border:0;border-radius:24px;padding:10px 20px;background:var(--pembe);color:#fff;cursor:pointer}
+  button.ikincil{background:var(--nane)}
+  button.sade{background:#eceff1;color:var(--koyu)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  input{font:inherit;padding:10px 14px;border:2px solid var(--nane);border-radius:14px;outline:none;max-width:200px}
+  #kod{font-size:32px;font-weight:800;letter-spacing:6px;color:var(--pembe)}
+  #oyunAlani{display:none}
+  .ust{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .skor{display:flex;gap:16px;font-weight:700}
+  .skor div{background:#fff;border-radius:14px;padding:8px 14px;box-shadow:0 2px 10px #0001}
+  .sira{background:var(--sari);border-radius:14px;padding:8px 14px;font-weight:700}
+  .oyunGovde{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  #tahta{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:2px;background:#b2dfdb;padding:6px;
+    border-radius:12px;width:min(92vw,620px);aspect-ratio:1}
+  .h{background:#e0f7fa;border-radius:4px;display:flex;align-items:center;justify-content:center;
+    font-size:clamp(8px,1.5vw,12px);color:#00796b;cursor:pointer;user-select:none;position:relative;overflow:hidden}
+  .h.dl{background:#b3e5fc}.h.tl{background:#4fc3f7;color:#fff}
+  .h.dw{background:#f8bbd0}.h.tw{background:#f06292;color:#fff}
+  .h.mrk{background:#ffe082}
+  .tas{background:#fff8e1;border:1px solid #ffca28;border-radius:4px;width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;font-weight:800;
+    font-size:clamp(10px,2vw,18px);color:#5d4037;position:relative}
+  .tas .p{position:absolute;right:1px;bottom:0;font-size:9px;font-weight:600;color:#8d6e63}
+  .tas.yeni{background:#fff59d;border-color:var(--pembe)}
+  .yan{flex:1;min-width:250px}
+  #raf{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+  #raf .tas{width:44px;height:48px;cursor:pointer;font-size:20px}
+  #raf .tas.secili{outline:3px solid var(--pembe);transform:translateY(-4px)}
+  .butonlar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  #log{height:150px;overflow:auto;background:#fafafa;border-radius:12px;padding:10px;font-size:14px;margin-top:10px}
+  #log div{margin-bottom:4px}
+  .sohbet{display:flex;gap:6px;margin-top:8px}
+  .sohbet input{flex:1;max-width:none}
+  .bilgi{font-size:13px;color:#607d8b;margin-top:8px}
+  .kalp{position:fixed;font-size:28px;pointer-events:none;animation:ucus 1.6s ease-out forwards}
+  @keyframes ucus{to{transform:translateY(-160px) rotate(25deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>İkimizin Kelime Oyunu 💛</h1>
+  <p class="alt">Scrabble tarzı, iki bilgisayardan canlı. Sözlük denetimi yok — kelimeye siz karar verirsiniz.</p>
+
+  <div class="kart" id="girisKart">
+    <p><b>Nasıl oynanır:</b> Biriniz "Oda kur" der, çıkan 4 haneli kodu diğerine gönderir. Diğeri kodu yazıp katılır.</p>
+    <div class="butonlar">
+      <button id="kurBtn">Oda kur</button>
+      <input id="kodGiris" placeholder="KOD" maxlength="4" autocomplete="off">
+      <button class="ikincil" id="katilBtn">Katıl</button>
+    </div>
+    <p id="durum" class="bilgi">Bağlantı bekleniyor değil — önce bir seçim yap.</p>
+    <p id="kod"></p>
+  </div>
+
+  <div id="oyunAlani">
+    <div class="ust">
+      <div class="skor">
+        <div id="skorBen">Sen: 0</div>
+        <div id="skorO">O: 0</div>
+        <div id="torba">Torba: 0</div>
+      </div>
+      <div class="sira" id="siraYazi">...</div>
+    </div>
+    <div class="oyunGovde">
+      <div id="tahta"></div>
+      <div class="yan">
+        <b>Harflerin</b>
+        <div id="raf"></div>
+        <div class="butonlar">
+          <button id="onayBtn">Kelimeyi onayla</button>
+          <button class="sade" id="geriBtn">Geri al</button>
+          <button class="sade" id="pasBtn">Pas</button>
+          <button class="sade" id="degistirBtn">Harfleri değiştir</button>
+        </div>
+        <div id="log"></div>
+        <div class="sohbet">
+          <input id="mesaj" placeholder="Bir şeyler yaz..." maxlength="120">
+          <button class="ikincil" id="gonderBtn">Gönder</button>
+        </div>
+        <p class="bilgi">Harfe tıkla, sonra tahtada bir kareye tıkla. Yanlış koyduysan konulan harfe tekrar tıkla.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Türkçe harf dağılımı ve puanları ----------
+const PUAN = {A:1,B:3,C:4,"Ç":4,D:3,E:1,F:7,G:5,"Ğ":8,H:5,"I":2,"İ":1,J:10,K:1,L:1,M:2,N:1,O:2,"Ö":7,P:5,R:1,S:2,"Ş":4,T:1,U:2,"Ü":3,V:7,Y:3,Z:4,"*":0};
+const DAGILIM = {A:12,B:2,C:2,"Ç":2,D:2,E:8,F:1,G:1,"Ğ":1,H:1,"I":4,"İ":7,J:1,K:7,L:7,M:4,N:5,O:3,"Ö":1,P:1,R:6,S:3,"Ş":2,T:5,U:3,"Ü":2,V:1,Y:2,Z:2,"*":2};
+const N = 15;
+
+// Klasik çarpan yerleşimi
+const TW = [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
+const DW = [[1,1],[2,2],[3,3],[4,4],[10,10],[11,11],[12,12],[13,13],[1,13],[2,12],[3,11],[4,10],[10,4],[11,3],[12,2],[13,1],[7,7]];
+const TL = [[1,5],[1,9],[5,1],[5,5],[5,9],[5,13],[9,1],[9,5],[9,9],[9,13],[13,5],[13,9]];
+const DL = [[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,6],[6,8],[6,12],[7,3],[7,11],[8,2],[8,6],[8,8],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
+const carpan = {};
+const koy = (l,t)=>l.forEach(([r,c])=>carpan[r+"_"+c]=t);
+koy(TW,"tw");koy(DW,"dw");koy(TL,"tl");koy(DL,"dl");
+carpan["7_7"]="mrk";
+
+// ---------- Durum ----------
+let peer=null, baglanti=null, benHost=false, benim="host";
+let S = null;            // oyun durumu (host tutar)
+let gecici = [];         // bu turda konulan taşlar [{r,c,harf,rafIdx,blank}]
+let secili = null;       // seçili raf index
+
+const $ = id => document.getElementById(id);
+const rastgeleKod = () => Math.random().toString(36).slice(2,6).toUpperCase();
+
+function yeniTorba(){
+  const t=[];
+  for(const h in DAGILIM) for(let i=0;i<DAGILIM[h];i++) t.push(h);
+  for(let i=t.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[t[i],t[j]]=[t[j],t[i]];}
+  return t;
+}
+function cek(torba,n){return torba.splice(0,n);}
+
+function yeniOyun(){
+  const torba = yeniTorba();
+  return {
+    tahta: Array.from({length:N},()=>Array(N).fill(null)),
+    torba,
+    raf:{host:cek(torba,7), guest:cek(torba,7)},
+    skor:{host:0, guest:0},
+    sira:"host",
+    pasSayisi:0,
+    bitti:false,
+    kayit:[]
+  };
+}
+
+// ---------- Bağlantı ----------
+function log(t){const d=document.createElement("div");d.innerHTML=t;$("log").appendChild(d);$("log").scrollTop=1e6;}
+
+$("kurBtn").onclick = ()=>{
+  const kod = rastgeleKod();
+  benHost = true; benim="host";
+  $("durum").textContent = "Oda kuruluyor...";
+  peer = new Peer("sevgilim-kelime-"+kod, {debug:1});
+  peer.on("open", ()=>{
+    $("kod").textContent = kod;
+    $("durum").textContent = "Kod hazır! Bu kodu gönder, karşı taraf katılınca oyun başlar.";
+  });
+  peer.on("error", e=>{ $("durum").textContent = "Hata: "+e.type+" (kodu yenilemeyi dene)"; });
+  peer.on("connection", c=>{
+    baglanti = c;
+    c.on("open", ()=>{
+      S = yeniOyun();
+      gonder({tip:"durum", S:disaAktar(S), rol:"guest"});
+      oyunuAc();
+      log("💛 Karşı taraf bağlandı, oyun başladı!");
+      ciz();
+    });
+    c.on("data", gelenHost);
+    c.on("close", ()=>log("⚠️ Bağlantı koptu."));
+  });
+};
+
+$("katilBtn").onclick = ()=>{
+  const kod = ($("kodGiris").value||"").trim().toUpperCase();
+  if(kod.length<4){ $("durum").textContent="4 haneli kodu yaz."; return; }
+  benHost = false; benim="guest";
+  $("durum").textContent = "Bağlanılıyor...";
+  peer = new Peer(undefined,{debug:1});
+  peer.on("open", ()=>{
+    baglanti = peer.connect("sevgilim-kelime-"+kod, {reliable:true});
+    baglanti.on("open", ()=>{ $("durum").textContent="Bağlandı, oyun yükleniyor..."; });
+    baglanti.on("data", gelenGuest);
+    baglanti.on("error", ()=>$("durum").textContent="Bağlanamadı, kodu kontrol et.");
+    baglanti.on("close", ()=>log("⚠️ Bağlantı koptu."));
+  });
+  peer.on("error", e=>{ $("durum").textContent="Bağlanamadı ("+e.type+"). Kodu kontrol et."; });
+};
+
+function gonder(o){ if(baglanti && baglanti.open) baglanti.send(o); }
+function disaAktar(s){ return JSON.parse(JSON.stringify(s)); }
+
+// Host tarafı gelen mesajlar
+function gelenHost(m){
+  if(m.tip==="hamle"){ hamleIsle("guest", m.tas); }
+  else if(m.tip==="pas"){ pasIsle("guest"); }
+  else if(m.tip==="degistir"){ degistirIsle("guest"); }
+  else if(m.tip==="sohbet"){ log("💬 <b>O:</b> "+kacir(m.metin)); }
+}
+// Guest tarafı gelen mesajlar
+function gelenGuest(m){
+  if(m.tip==="durum"){ S = m.S; oyunuAc(); ciz(); }
+  else if(m.tip==="log"){ log(m.metin); if(m.kalp) kalpYagmuru(); }
+  else if(m.tip==="hata"){ alert(m.metin); gecici=[]; ciz(); }
+  else if(m.tip==="sohbet"){ log("💬 <b>O:</b> "+kacir(m.metin)); }
+}
+function kacir(t){return String(t).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));}
+
+function yayinla(metin, kalp){
+  gonder({tip:"durum", S:disaAktar(S)});
+  if(metin){ gonder({tip:"log", metin, kalp}); log(metin); if(kalp) kalpYagmuru(); }
+}
+
+function oyunuAc(){ $("girisKart").style.display="none"; $("oyunAlani").style.display="block"; }
+
+// ---------- Çizim ----------
+function ciz(){
+  if(!S) return;
+  const t=$("tahta"); t.innerHTML="";
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const d=document.createElement("div");
+    const k=carpan[r+"_"+c];
+    d.className="h"+(k?" "+k:"");
+    const gec = gecici.find(g=>g.r===r&&g.c===c);
+    const tas = S.tahta[r][c] || (gec?{harf:gec.harf,blank:gec.blank}:null);
+    if(tas){
+      d.innerHTML = `<div class="tas${gec?" yeni":""}">${tas.harf}<span class="p">${tas.blank?0:(PUAN[tas.harf]||0)}</span></div>`;
+    } else if(k){
+      d.textContent = k==="tw"?"3K":k==="dw"?"2K":k==="tl"?"3H":k==="dl"?"2H":"★";
+    }
+    d.onclick = ()=>kareTikla(r,c);
+    t.appendChild(d);
+  }
+  const raf = S.raf[benim]||[];
+  const rf=$("raf"); rf.innerHTML="";
+  raf.forEach((h,i)=>{
+    if(gecici.some(g=>g.rafIdx===i)) { const bos=document.createElement("div"); bos.style.width="44px"; rf.appendChild(bos); return; }
+    const d=document.createElement("div");
+    d.className="tas"+(secili===i?" secili":"");
+    d.innerHTML = `${h==="*"?"·":h}<span class="p">${PUAN[h]}</span>`;
+    d.onclick = ()=>{ secili = (secili===i?null:i); ciz(); };
+    rf.appendChild(d);
+  });
+  $("skorBen").textContent = "Sen: "+(S.skor[benim]||0);
+  $("skorO").textContent = "O: "+(S.skor[benim==="host"?"guest":"host"]||0);
+  $("torba").textContent = "Torba: "+S.torba.length;
+  const benimSira = S.sira===benim && !S.bitti;
+  $("siraYazi").textContent = S.bitti ? "Oyun bitti 💛" : (benimSira?"Sıra sende!":"Sıra onda, bekle...");
+  ["onayBtn","geriBtn","pasBtn","degistirBtn"].forEach(b=>$(b).disabled = !benimSira);
+}
+
+function kareTikla(r,c){
+  if(!S || S.bitti) return;
+  const g = gecici.findIndex(x=>x.r===r&&x.c===c);
+  if(g>=0){ gecici.splice(g,1); ciz(); return; }
+  if(S.sira!==benim) return;
+  if(secili===null) return;
+  if(S.tahta[r][c]) return;
+  let harf = S.raf[benim][secili];
+  let blank = false;
+  if(harf==="*"){
+    const g2 = (prompt("Joker hangi harf olsun?")||"").toUpperCase();
+    if(!g2 || !(g2 in PUAN) || g2==="*") return;
+    harf = g2; blank = true;
+  }
+  gecici.push({r,c,harf,blank,rafIdx:secili});
+  secili=null; ciz();
+}
+
+$("geriBtn").onclick = ()=>{ gecici=[]; secili=null; ciz(); };
+$("onayBtn").onclick = ()=>{
+  if(!gecici.length){ alert("Önce tahtaya harf koy."); return; }
+  const tas = gecici.map(g=>({r:g.r,c:g.c,harf:g.harf,blank:g.blank,rafIdx:g.rafIdx}));
+  if(benHost) hamleIsle("host", tas); else gonder({tip:"hamle", tas});
+};
+$("pasBtn").onclick = ()=>{ if(benHost) pasIsle("host"); else gonder({tip:"pas"}); };
+$("degistirBtn").onclick = ()=>{ if(!confirm("Tüm harflerin değişsin, sıra karşıya geçsin mi?")) return;
+  if(benHost) degistirIsle("host"); else gonder({tip:"degistir"}); };
+$("gonderBtn").onclick = ()=>{
+  const m=$("mesaj").value.trim(); if(!m) return;
+  $("mesaj").value=""; log("💬 <b>Sen:</b> "+kacir(m)); gonder({tip:"sohbet", metin:m});
+};
+$("mesaj").addEventListener("keydown", e=>{ if(e.key==="Enter") $("gonderBtn").click(); });
+
+// ---------- Oyun mantığı (sadece host çalıştırır) ----------
+function hata(kim, metin){
+  if(kim===benim){ alert(metin); gecici=[]; ciz(); }
+  else gonder({tip:"hata", metin});
+}
+
+function hamleIsle(kim, tas){
+  if(!benHost || S.bitti) return;
+  if(S.sira!==kim) return hata(kim,"Sıra sende değil.");
+  // aynı satır/sütun kontrolü
+  const rs=[...new Set(tas.map(t=>t.r))], cs=[...new Set(tas.map(t=>t.c))];
+  if(rs.length>1 && cs.length>1) return hata(kim,"Harfler tek bir satır ya da sütunda olmalı.");
+  for(const t of tas) if(S.tahta[t.r][t.c]) return hata(kim,"Dolu kareye harf konamaz.");
+  // geçici olarak yerleştir
+  tas.forEach(t=>S.tahta[t.r][t.c]={harf:t.harf, blank:!!t.blank});
+  const geriAl = ()=>tas.forEach(t=>S.tahta[t.r][t.c]=null);
+
+  // boşluksuz mu
+  if(rs.length===1){
+    const r=rs[0], mn=Math.min(...cs), mx=Math.max(...cs);
+    for(let c=mn;c<=mx;c++) if(!S.tahta[r][c]){ geriAl(); return hata(kim,"Harfler arasında boşluk kalmamalı."); }
+  } else {
+    const c=cs[0], mn=Math.min(...rs), mx=Math.max(...rs);
+    for(let r=mn;r<=mx;r++) if(!S.tahta[r][c]){ geriAl(); return hata(kim,"Harfler arasında boşluk kalmamalı."); }
+  }
+  // ilk hamle merkezden, sonrakiler temas etmeli
+  const ilk = S.kayit.length===0;
+  if(ilk){
+    if(!tas.some(t=>t.r===7&&t.c===7)){ geriAl(); return hata(kim,"İlk kelime ortadaki yıldızdan geçmeli."); }
+    if(tas.length<2){ geriAl(); return hata(kim,"İlk kelime en az 2 harf olmalı."); }
+  } else {
+    const temas = tas.some(t=>[[1,0],[-1,0],[0,1],[0,-1]].some(([dr,dc])=>{
+      const r=t.r+dr,c=t.c+dc;
+      return r>=0&&r<N&&c>=0&&c<N&&S.tahta[r][c]&&!tas.some(x=>x.r===r&&x.c===c);
+    }));
+    if(!temas){ geriAl(); return hata(kim,"Yeni harfler tahtadaki kelimelere değmeli."); }
+  }
+
+  // kelimeleri ve puanı topla
+  const yeniSet = new Set(tas.map(t=>t.r+"_"+t.c));
+  const kelimeler = [];
+  const kelimeTopla = (r,c,dr,dc)=>{
+    let sr=r, sc=c;
+    while(sr-dr>=0 && sc-dc>=0 && sr-dr<N && sc-dc<N && S.tahta[sr-dr][sc-dc]){ sr-=dr; sc-=dc; }
+    let kelime="", puan=0, kelimeCarpan=1, uzunluk=0;
+    let r2=sr, c2=sc;
+    while(r2<N && c2<N && r2>=0 && c2>=0 && S.tahta[r2][c2]){
+      const t=S.tahta[r2][c2];
+      let p = t.blank?0:(PUAN[t.harf]||0);
+      const k = carpan[r2+"_"+c2];
+      if(yeniSet.has(r2+"_"+c2)){
+        if(k==="dl") p*=2; else if(k==="tl") p*=3;
+        else if(k==="dw"||k==="mrk") kelimeCarpan*=2; else if(k==="tw") kelimeCarpan*=3;
+      }
+      puan+=p; kelime+=t.harf; uzunluk++;
+      r2+=dr; c2+=dc;
+    }
+    if(uzunluk>1) kelimeler.push({kelime, puan:puan*kelimeCarpan});
+  };
+  if(rs.length===1){
+    kelimeTopla(rs[0], Math.min(...cs), 0, 1);
+    tas.forEach(t=>kelimeTopla(t.r,t.c,1,0));
+  } else {
+    kelimeTopla(Math.min(...rs), cs[0], 1, 0);
+    tas.forEach(t=>kelimeTopla(t.r,t.c,0,1));
+  }
+  let toplam = kelimeler.reduce((a,k)=>a+k.puan,0);
+  if(tas.length===7) toplam += 50;
+
+  // rafı yenile
+  const raf = S.raf[kim];
+  const kalan = raf.filter((_,i)=>!tas.some(t=>t.rafIdx===i));
+  S.raf[kim] = kalan.concat(cek(S.torba, 7-kalan.length));
+  S.skor[kim]+=toplam;
+  S.kayit.push({kim, kelimeler, toplam});
+  S.pasSayisi=0;
+  S.sira = kim==="host"?"guest":"host";
+  if(S.raf[kim].length===0 && S.torba.length===0) S.bitti=true;
+
+  gecici=[]; secili=null;
+  const ad = kim===benim?"Sen":"O";
+  const metin = `📝 <b>${ad}</b>: ${kelimeler.map(k=>k.kelime+" ("+k.puan+")").join(", ")} → <b>+${toplam}</b>`;
+  yayinla(metin, toplam>=25);
+  if(S.bitti) yayinla("🎉 Oyun bitti! Kelimeler bitti ama seni sevmem bitmedi 💛");
+  ciz();
+}
+
+function pasIsle(kim){
+  if(!benHost || S.bitti) return;
+  if(S.sira!==kim) return;
+  S.pasSayisi++;
+  S.sira = kim==="host"?"guest":"host";
+  if(S.pasSayisi>=4) S.bitti=true;
+  gecici=[];
+  yayinla(`⏭️ <b>${kim===benim?"Sen":"O"}</b> pas geçti.`);
+  ciz();
+}
+
+function degistirIsle(kim){
+  if(!benHost || S.bitti) return;
+  if(S.sira!==kim) return;
+  const eski = S.raf[kim];
+  S.raf[kim] = cek(S.torba, eski.length);
+  S.torba = S.torba.concat(eski);
+  for(let i=S.torba.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[S.torba[i],S.torba[j]]=[S.torba[j],S.torba[i]];}
+  S.sira = kim==="host"?"guest":"host";
+  gecici=[];
+  yayinla(`🔄 <b>${kim===benim?"Sen":"O"}</b> harflerini değiştirdi.`);
+  ciz();
+}
+
+function kalpYagmuru(){
+  for(let i=0;i<12;i++){
+    const k=document.createElement("div");
+    k.className="kalp"; k.textContent=["💛","💖","✨","💕"][i%4];
+    k.style.left=(Math.random()*90+5)+"vw"; k.style.top=(Math.random()*60+30)+"vh";
+    k.style.animationDelay=(Math.random()*0.5)+"s";
+    document.body.appendChild(k);
+    setTimeout(()=>k.remove(),2200);
+  }
+}
+</script>
+</body>
+</html>
