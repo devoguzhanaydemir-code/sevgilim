@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Çiz ve Bil 🎨</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#e3f2fd,#fff 45%,#fce4ec);color:#3b2e4a;padding:16px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:26px;margin:4px 0}
+  .alt{color:#6d5b7b;font-size:14px;margin:0 0 14px}
+  .kart{background:#fff;border-radius:20px;padding:18px;box-shadow:0 6px 24px #0001;margin-bottom:12px}
+  button{font:inherit;border:0;border-radius:22px;padding:10px 18px;background:#ec407a;color:#fff;cursor:pointer}
+  button.ikincil{background:#26a69a}
+  button.sade{background:#eceff1;color:#3b2e4a}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  input{font:inherit;padding:10px 14px;border:2px solid #26a69a;border-radius:14px;outline:none}
+  #kod{font-size:32px;font-weight:800;letter-spacing:8px;color:#ec407a}
+  #oyun{display:none}
+  .ust{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .etiket{background:#fff;border-radius:14px;padding:8px 14px;font-weight:700;box-shadow:0 2px 10px #0001}
+  .rol{background:#ffd54f}
+  .kelime{font-size:26px;font-weight:800;color:#ad1457;letter-spacing:1px}
+  .gizli{color:#90a4ae;font-size:18px;font-weight:600}
+  canvas{background:#fff;border-radius:16px;border:2px solid #b2dfdb;touch-action:none;width:100%;max-width:100%;display:block}
+  .aletler{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+  .renk{width:30px;height:30px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #cfd8dc;cursor:pointer}
+  .renk.secili{box-shadow:0 0 0 3px #ec407a}
+  #log{height:150px;overflow:auto;background:#fafafa;border-radius:14px;padding:10px;font-size:14px;margin-top:10px}
+  #log div{margin-bottom:4px}
+  .satir{display:flex;gap:8px;margin-top:8px}
+  .satir input{flex:1}
+  .kucuk{font-size:13px;color:#78909c;margin-top:8px}
+  .kalp{position:fixed;font-size:30px;pointer-events:none;animation:uc 1.8s ease-out forwards}
+  @keyframes uc{to{transform:translateY(-180px) rotate(15deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Çiz ve Bil 🎨</h1>
+  <p class="alt">Biri çizer, diğeri tahmin eder. Ortak puan toplarsınız — rakip yok, takımız 💛</p>
+
+  <div class="kart" id="giris">
+    <p>Biriniz oda kurar, 4 haneli kodu diğerine gönderir.</p>
+    <div class="satir" style="flex-wrap:wrap">
+      <button id="kurBtn">Oda kur</button>
+      <input id="kodGiris" placeholder="KOD" maxlength="4" style="max-width:120px;text-transform:uppercase">
+      <button class="ikincil" id="katilBtn">Katıl</button>
+    </div>
+    <p id="durum" class="kucuk">Önce bir seçim yap.</p>
+    <p id="kod"></p>
+  </div>
+
+  <div id="oyun">
+    <div class="ust">
+      <span class="etiket rol" id="rolYazi">...</span>
+      <span class="etiket" id="kelimeKutu"><span class="gizli">Hazırlanıyor...</span></span>
+      <span class="etiket" id="sayac">⏱ 90</span>
+      <span class="etiket" id="puan">Birlikte: 0</span>
+    </div>
+    <canvas id="tuval" width="900" height="560"></canvas>
+    <div class="aletler" id="aletler">
+      <span class="renk secili" data-r="#3b2e4a" style="background:#3b2e4a"></span>
+      <span class="renk" data-r="#ec407a" style="background:#ec407a"></span>
+      <span class="renk" data-r="#26a69a" style="background:#26a69a"></span>
+      <span class="renk" data-r="#ffa000" style="background:#ffa000"></span>
+      <span class="renk" data-r="#3949ab" style="background:#3949ab"></span>
+      <span class="renk" data-r="#ffffff" style="background:#fff"></span>
+      <button class="sade" id="temizle">Temizle</button>
+      <button class="sade" id="pasBtn">Pas (yeni kelime)</button>
+      <button class="ikincil" id="bildiBtn">Bildi say 💛</button>
+    </div>
+    <div id="log"></div>
+    <div class="satir">
+      <input id="tahmin" placeholder="Tahminini yaz ve Enter'a bas..." maxlength="60">
+      <button id="gonderBtn">Gönder</button>
+    </div>
+    <p class="kucuk" id="ipucu">Çizen kişi kelimeyi yazamaz, sadece çizer. Doğru tahmin otomatik anlaşılır.</p>
+  </div>
+</div>
+
+<script>
+const $ = id=>document.getElementById(id);
+const KELIMELER = ["kahve","sarılmak","ilk buluşma","hemşire","kalp","gece lambası","yıldız","pizza",
+  "telefon görüşmesi","çiçek","uyuyan kedi","deniz kenarı","dondurma","el ele","sinema","yağmur",
+  "kahvaltı","selfie","hastane","doktor","kitap","müzik","dans","uçak","valiz","tatil","güneş",
+  "ay","pasta","doğum günü","öpücük","mektup","ev","araba","köpek","kar","şemsiye","saat","çay"];
+const SURE = 90;
+
+let peer=null, baglanti=null, benHost=false;
+let benimRol="cizen", kelime="", puan=0, kalan=SURE, sayacId=null, aktif=false;
+let ciziyor=false, sonX=0, sonY=0, renk="#3b2e4a";
+
+const tuval=$("tuval"), ctx=tuval.getContext("2d");
+ctx.lineCap="round"; ctx.lineJoin="round";
+const gonder = o=>{ if(baglanti&&baglanti.open) baglanti.send(o); };
+const rastgeleKod = ()=>Math.random().toString(36).slice(2,6).toUpperCase();
+const log=(t)=>{const d=document.createElement("div"); d.innerHTML=t; $("log").appendChild(d); $("log").scrollTop=1e6;};
+const sadelestir = s => s.toLocaleLowerCase("tr").replace(/[^a-zçğıöşü ]/g,"").trim();
+
+/* ---------- bağlantı ---------- */
+function kur(c){
+  baglanti=c;
+  c.on("open", ()=>{ $("giris").style.display="none"; $("oyun").style.display="block";
+    if(benHost){ benimRol="cizen"; yeniKelime(); } });
+  c.on("data", gelen);
+  c.on("close", ()=>{ log("⚠️ Bağlantı koptu."); aktif=false; });
+}
+$("kurBtn").onclick=()=>{
+  const k=rastgeleKod(); benHost=true;
+  $("durum").textContent="Oda kuruluyor...";
+  peer=new Peer("sevgilim-ciz-"+k);
+  peer.on("open",()=>{ $("kod").textContent=k; $("durum").textContent="Kodu gönder, o katılınca başlıyoruz."; });
+  peer.on("error",e=>$("durum").textContent="Hata: "+e.type);
+  peer.on("connection", kur);
+};
+$("katilBtn").onclick=()=>{
+  const k=($("kodGiris").value||"").trim().toUpperCase();
+  if(k.length<4){ $("durum").textContent="4 haneli kodu yaz."; return; }
+  benHost=false; $("durum").textContent="Bağlanılıyor...";
+  peer=new Peer();
+  peer.on("open",()=>{ kur(peer.connect("sevgilim-ciz-"+k,{reliable:true})); });
+  peer.on("error",e=>$("durum").textContent="Bağlanamadı ("+e.type+").");
+};
+
+function gelen(m){
+  if(m.tip==="ciz"){ ciz(m.x0,m.y0,m.x1,m.y1,m.renk,m.kalin); }
+  else if(m.tip==="temizle"){ ctx.clearRect(0,0,tuval.width,tuval.height); }
+  else if(m.tip==="tur"){ // karşı taraf yeni tur başlattı
+    benimRol = m.cizenBen ? "tahminci" : "cizen";
+    kelime = m.kelime || "";
+    puan = m.puan; baslat();
+  }
+  else if(m.tip==="tahmin"){
+    log("💬 <b>O:</b> "+m.metin);
+    if(benimRol==="cizen" && sadelestir(m.metin)===sadelestir(kelime)) dogru();
+  }
+  else if(m.tip==="dogru"){
+    log("✅ <b>Bildiniz:</b> "+m.kelime+" — birlikte "+m.puan+" kelime! 💛");
+    puan=m.puan; $("puan").textContent="Birlikte: "+puan; kalpYagmuru();
+  }
+}
+
+/* ---------- tur yönetimi ---------- */
+function yeniKelime(){
+  kelime = KELIMELER[Math.floor(Math.random()*KELIMELER.length)];
+  benimRol = "cizen";
+  gonder({tip:"tur", kelime, cizenBen:true, puan});
+  baslat();
+}
+function baslat(){
+  ctx.clearRect(0,0,tuval.width,tuval.height);
+  kalan=SURE; aktif=true;
+  $("rolYazi").textContent = benimRol==="cizen" ? "Sıra sende: ÇİZ 🎨" : "Sen tahmin et 🤔";
+  $("kelimeKutu").innerHTML = benimRol==="cizen"
+      ? '<span class="kelime">'+kelime+'</span>'
+      : '<span class="gizli">Kelime gizli — çizime bak!</span>';
+  $("tahmin").disabled = benimRol==="cizen";
+  ["temizle","pasBtn","bildiBtn"].forEach(b=>$(b).disabled = benimRol!=="cizen");
+  $("puan").textContent="Birlikte: "+puan;
+  clearInterval(sayacId);
+  sayacId=setInterval(()=>{
+    kalan--; $("sayac").textContent="⏱ "+kalan;
+    if(kalan<=0){ clearInterval(sayacId); aktif=false;
+      if(benimRol==="cizen"){ log("⏰ Süre doldu! Kelime: <b>"+kelime+"</b>"); gonder({tip:"tahmin",metin:"(süre doldu, kelime: "+kelime+")"}); rolDegistir(); }
+    }
+  },1000);
+  $("sayac").textContent="⏱ "+kalan;
+}
+function dogru(){
+  if(!aktif) return;
+  aktif=false; clearInterval(sayacId); puan++;
+  log("✅ <b>Bildi!</b> Kelime: "+kelime+" 💛");
+  gonder({tip:"dogru", kelime, puan});
+  kalpYagmuru();
+  setTimeout(rolDegistir, 1800);
+}
+function rolDegistir(){
+  // çizen kişi sırayı karşıya verir: karşı taraf çizer
+  const yeni = KELIMELER[Math.floor(Math.random()*KELIMELER.length)];
+  kelime = yeni; benimRol = "tahminci";
+  gonder({tip:"tur", kelime:yeni, cizenBen:false, puan});
+  kelime = ""; // tahminci kelimeyi bilmemeli
+  baslat();
+}
+
+/* ---------- çizim ---------- */
+function oran(e){
+  const r=tuval.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return [ (t.clientX-r.left)*tuval.width/r.width, (t.clientY-r.top)*tuval.height/r.height ];
+}
+function ciz(x0,y0,x1,y1,rk,kl){
+  ctx.strokeStyle=rk; ctx.lineWidth=kl;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+}
+function bas(e){ if(benimRol!=="cizen"||!aktif) return; e.preventDefault(); ciziyor=true; [sonX,sonY]=oran(e); }
+function hareket(e){
+  if(!ciziyor) return; e.preventDefault();
+  const [x,y]=oran(e); const kl = renk==="#ffffff"?24:4;
+  ciz(sonX,sonY,x,y,renk,kl);
+  gonder({tip:"ciz", x0:sonX,y0:sonY,x1:x,y1:y, renk, kalin:kl});
+  sonX=x; sonY=y;
+}
+const birak=()=>{ ciziyor=false; };
+tuval.addEventListener("mousedown",bas); tuval.addEventListener("touchstart",bas,{passive:false});
+tuval.addEventListener("mousemove",hareket); tuval.addEventListener("touchmove",hareket,{passive:false});
+["mouseup","mouseleave","touchend","touchcancel"].forEach(ev=>tuval.addEventListener(ev,birak));
+document.querySelectorAll(".renk").forEach(el=>el.onclick=()=>{
+  document.querySelectorAll(".renk").forEach(x=>x.classList.remove("secili"));
+  el.classList.add("secili"); renk=el.dataset.r;
+});
+$("temizle").onclick=()=>{ ctx.clearRect(0,0,tuval.width,tuval.height); gonder({tip:"temizle"}); };
+$("pasBtn").onclick=()=>{ if(benimRol!=="cizen") return; yeniKelime(); log("🔄 Yeni kelime alındı."); };
+$("bildiBtn").onclick=()=>{ if(benimRol==="cizen") dogru(); };
+
+/* ---------- tahmin ---------- */
+$("gonderBtn").onclick=()=>{
+  const m=$("tahmin").value.trim(); if(!m) return;
+  $("tahmin").value="";
+  log("💬 <b>Sen:</b> "+m);
+  gonder({tip:"tahmin", metin:m});
+};
+$("tahmin").addEventListener("keydown",e=>{ if(e.key==="Enter") $("gonderBtn").click(); });
+
+function kalpYagmuru(){
+  for(let i=0;i<14;i++){
+    const k=document.createElement("div");
+    k.className="kalp"; k.textContent=["💛","🎨","✨","💖","👏"][i%5];
+    k.style.left=(Math.random()*90+5)+"vw"; k.style.top=(Math.random()*50+40)+"vh";
+    k.style.animationDelay=(Math.random()*0.5)+"s";
+    document.body.appendChild(k); setTimeout(()=>k.remove(),2200);
+  }
+}
+</script>
+</body>
+</html>
