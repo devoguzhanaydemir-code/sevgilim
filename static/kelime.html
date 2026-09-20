@@ -122,6 +122,17 @@
   .lobiBilgi{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
   .rozetMini{font-size:11px;background:#ffffff12;border:1px solid #ffffff20;border-radius:999px;padding:4px 12px;color:#90a4ae}
   .msjAd{display:block;font-size:10px;opacity:.65;font-style:normal;margin-bottom:2px}
+
+  .h.sonKelime{background:linear-gradient(160deg,#fff3c4,#ffd27a);box-shadow:0 2px 0 #00000055,inset 0 0 0 2px #ff980055}
+  .h.sonTas{z-index:6}
+  .h.sonTas::before{content:"";position:absolute;inset:-2px;border-radius:6px;border:2px solid #ff9800;
+    box-shadow:0 0 12px #ff9800aa;animation:sonNabiz 1.5s ease-in-out infinite;pointer-events:none}
+  @keyframes sonNabiz{50%{box-shadow:0 0 22px #ff9800;border-color:#ffca28}}
+  #sonBant{display:none;margin-top:10px;text-align:center;font-size:14px;color:#3a2400;
+    background:linear-gradient(90deg,#ffd54f,#ffb300);border-radius:14px;padding:8px 12px;font-weight:700;
+    box-shadow:0 0 22px #ffb30055;animation:gir .25s ease-out}
+  #sonBant b{color:#000}
+  #sonBant .kw{background:#00000018;border-radius:8px;padding:1px 7px;margin:0 2px;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -159,6 +170,7 @@
         <span class="kucuk" id="torba">Torba: 0</span>
         <span class="p" id="pO">O: 0</span>
       </div>
+      <div id="sonBant"></div>
       <div id="tahta"></div>
       <div id="el"></div>
       <div class="dugmeler">
@@ -363,7 +375,8 @@ function oyunuBaslat(){
   yayinla();
 }
 const gorunum = kim => ({tahta:D.tahta, el:D.eller[kim], puan:[D.puan[0],D.puan[1]], sira:D.sira,
-  torba:D.torba.length, kayit:D.kayit, bitti:D.bitti});
+  torba:D.torba.length, kayit:D.kayit, bitti:D.bitti,
+  sonYerler:D.sonYerler||[], sonKelime:D.sonKelime||[]});
 function yayinla(){ G = gorunum(0); ciz(); gonder({tip:"durum", v:gorunum(1)}); }
 function kayitEkle(o, m){ D.kayit.push({o, m}); if(D.kayit.length>40) D.kayit.shift(); }
 
@@ -396,6 +409,8 @@ function hamleIsle(kim, yerler){
   doldur(D.eller[kim]);
   D.puan[kim] += s.puan;
   D.pas = 0;
+  D.sonYerler = yerler.map(y=>y.i);
+  D.sonKelime = [].concat.apply([], s.kelimeler.map(k=>k.anahtar.split(",").map(Number)));
   kayitEkle(kim, s.kelimeler.map(k=>k.kelime).join(" + ") + " · +" + s.puan + (s.bingo ? " (bingo +50!)" : ""));
   bitisKontrol();
   if(!D.bitti) D.sira = 1-kim;
@@ -489,7 +504,9 @@ function ciz(){
     const d = document.createElement("div");
     const tas = G.tahta[i] || gh[i];
     let sinif = "h";
-    if(tas) sinif += " tas" + (gh[i] ? " yeni" : "") + (tas.joker ? " joker" : "");
+    if(tas) sinif += " tas" + (gh[i] ? " yeni" : "") + (tas.joker ? " joker" : "")
+      + ((G.sonKelime||[]).indexOf(i)>=0 ? " sonKelime" : "")
+      + ((G.sonYerler||[]).indexOf(i)>=0 ? " sonTas" : "");
     else if(i===MERKEZ) sinif += " merkez";
     else if(CARPAN[i]) sinif += " " + CARPAN[i];
     d.className = sinif;
@@ -768,6 +785,20 @@ document.querySelectorAll(".kim").forEach(b=>{
     f();
   };
 });
+
+/* ---------------- son kelime bandı ---------------- */
+const _ciz3 = ciz;
+ciz = function(){
+  _ciz3();
+  const b = document.getElementById("sonBant");
+  if(!b || !G) return;
+  const k = (G.kayit||[]).filter(x=>/\+\d/.test(x.m||"")).slice(-1)[0];
+  if(!k){ b.style.display = "none"; return; }
+  const p = (k.m||"").split(" · ");
+  const kelimeler = (p[0]||"").split(" + ").map(s=>'<span class="kw">'+s.trim()+'</span>').join(" ");
+  b.style.display = "block";
+  b.innerHTML = "🆕 Son kelime — <b>" + (k.o===benim ? benAd : oAd) + "</b> " + kelimeler + " <b>" + (p[1]||"") + "</b>";
+};
 
 </script>
 </body>
