@@ -133,6 +133,19 @@
     box-shadow:0 0 22px #ffb30055;animation:gir .25s ease-out}
   #sonBant b{color:#000}
   #sonBant .kw{background:#00000018;border-radius:8px;padding:1px 7px;margin:0 2px;letter-spacing:1px}
+
+  #anlamPopup{position:fixed;left:50%;bottom:24px;transform:translate(-50%,150%);width:min(440px,92vw);
+    background:linear-gradient(160deg,#1c1636f5,#2a1b3af5);border:1px solid #ffd54f66;border-radius:20px;
+    padding:16px 18px;box-shadow:0 18px 50px #000000aa,0 0 45px #ffd54f26;z-index:300;cursor:pointer;
+    transition:transform .38s cubic-bezier(.2,1.2,.4,1),opacity .3s;opacity:0;backdrop-filter:blur(8px)}
+  #anlamPopup.acik{transform:translate(-50%,0);opacity:1}
+  #anlamPopup .pBas{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#ffd54f;
+    font-weight:800;font-size:15px;margin-bottom:10px}
+  #anlamPopup .pPuan{background:#ffd54f;color:#1a1440;border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+  #anlamPopup .pk{border-left:3px solid #4dd0e1;background:#4dd0e114;border-radius:10px;padding:8px 12px;margin-bottom:8px}
+  #anlamPopup .pk b{display:block;color:#fff;letter-spacing:2px;font-size:17px;margin-bottom:2px}
+  #anlamPopup .pk span{font-size:13px;color:#cfd8dc;line-height:1.45}
+  #anlamPopup .pKapat{text-align:center;font-size:11px;color:#78909c;margin-top:2px}
 </style>
 </head>
 <body>
@@ -798,6 +811,39 @@ ciz = function(){
   const kelimeler = (p[0]||"").split(" + ").map(s=>'<span class="kw">'+s.trim()+'</span>').join(" ");
   b.style.display = "block";
   b.innerHTML = "🆕 Son kelime — <b>" + (k.o===benim ? benAd : oAd) + "</b> " + kelimeler + " <b>" + (p[1]||"") + "</b>";
+};
+
+/* ---------------- anlam popup ---------------- */
+let popupZaman = null;
+function anlamPopup(icerik, puan){
+  let p = document.getElementById("anlamPopup");
+  if(!p){
+    p = document.createElement("div");
+    p.id = "anlamPopup";
+    p.onclick = ()=>p.classList.remove("acik");
+    document.body.appendChild(p);
+  }
+  p.innerHTML = '<div class="pBas"><span>📖 Kelime anlamı</span><span class="pPuan">' + (puan||"") + '</span></div>'
+    + icerik + '<div class="pKapat">kapatmak için dokun</div>';
+  p.classList.add("acik");
+  ton(1320, 0.12, "sine", 0.08);
+  clearTimeout(popupZaman);
+  popupZaman = setTimeout(()=>p.classList.remove("acik"), 9000);
+}
+const _anlamlariGoster = anlamlariGoster;
+anlamlariGoster = async function(metin){
+  await _anlamlariGoster(metin);
+  const par = (metin||"").split(" · ");
+  const kelimeler = (par[0]||"").split(" + ").map(s=>s.trim()).filter(s=>/^[A-ZÇĞİÖŞÜ]{2,}$/.test(s));
+  if(!kelimeler.length) return;
+  const satirlar = [];
+  for(const k of kelimeler){
+    const a = await anlamGetir(k);
+    const d = document.createElement("span");
+    d.textContent = a || "TDK'da açıklama bulunamadı.";
+    satirlar.push('<div class="pk"><b>' + k + '</b>' + d.outerHTML + '</div>');
+  }
+  anlamPopup(satirlar.join(""), par.slice(1).join(" · "));
 };
 
 </script>
