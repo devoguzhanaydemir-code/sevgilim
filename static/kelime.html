@@ -96,24 +96,60 @@
   .patlama{position:fixed;inset:0;pointer-events:none;z-index:200}
   .patlama span{position:absolute;animation:ucus 2.2s ease-out forwards}
   @keyframes ucus{0%{transform:scale(.3);opacity:0}15%{transform:scale(1.25);opacity:1}100%{transform:translateY(-230px) scale(.9) rotate(25deg);opacity:0}}
+
+  .emj{-webkit-text-fill-color:initial}
+  .lobi{text-align:center;position:relative;overflow:hidden;
+    background:linear-gradient(160deg,#ffffff18,#ffffff08);border:1px solid #ffffff2e}
+  .lobi::before{content:"";position:absolute;inset:-45%;pointer-events:none;
+    background:radial-gradient(circle at 30% 20%,#ffd54f26,transparent 45%),radial-gradient(circle at 75% 80%,#ec407a30,transparent 45%);
+    animation:doner 22s linear infinite}
+  @keyframes doner{to{transform:rotate(360deg)}}
+  .lobi>*{position:relative;z-index:1}
+  .kalpler{font-size:30px;letter-spacing:10px;animation:sek 2.6s ease-in-out infinite}
+  @keyframes sek{50%{transform:translateY(-6px) scale(1.06)}}
+  .lobiBaslik{margin:8px 0 2px;font-size:24px;color:#fff;font-weight:800}
+  .lobiBaslik span{color:#ec407a}
+  .lobiAlt{margin:0 0 14px;color:#b0bec5;font-size:14px}
+  .kimler{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .kim{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:132px;padding:14px 18px;
+    border-radius:20px;background:#ffffff14;color:#fff;font-size:28px;border:2px solid transparent}
+  .kim span{font-size:15px;font-weight:700}
+  .kim.secili{background:#ffd54f;color:#1a1440;border-color:#fff;box-shadow:0 0 22px #ffd54f77}
+  .ayrac{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:#78909c;font-size:11px;letter-spacing:3px}
+  .ayrac::before,.ayrac::after{content:"";flex:1;height:1px;background:#ffffff22}
+  #kod{animation:nabiz2 2s ease-in-out infinite}
+  @keyframes nabiz2{50%{text-shadow:0 0 26px #ffd54f}}
+  .lobiBilgi{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .rozetMini{font-size:11px;background:#ffffff12;border:1px solid #ffffff20;border-radius:999px;padding:4px 12px;color:#90a4ae}
+  .msjAd{display:block;font-size:10px;opacity:.65;font-style:normal;margin-bottom:2px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <a class="geri" href="./">← ana sayfa</a>
-  <h1>Kelime Oyunu 🔤</h1>
+  <h1>Kelime Oyunu <span class="emj">🔤</span></h1>
   <p class="alt">İki bilgisayar, tam Scrabble kuralları, gerçek Türkçe sözlük</p>
 
-  <div class="kart" id="giris">
-    <p style="margin-top:0">Biriniz oda kurar, kodu diğerine gönderir.</p>
-    <div class="dugmeler">
-      <button id="kurBtn">Oda kur</button>
-      <input id="kodGiris" placeholder="KOD" maxlength="4">
-      <button class="ik" id="katilBtn">Katıl</button>
+  <div class="kart lobi" id="giris">
+    <div class="kalpler">💗 💛</div>
+    <h2 class="lobiBaslik">Ayşe Nur <span>&amp;</span> Oğuzhan</h2>
+    <p class="lobiAlt">Bu bilgisayarda kim oynuyor?</p>
+    <div class="kimler">
+      <button class="kim" data-ad="Ayşe Nur">💗<span>Ayşe Nur</span></button>
+      <button class="kim" data-ad="Oğuzhan">💛<span>Oğuzhan</span></button>
     </div>
-    <p id="durum" class="kucuk" style="margin-bottom:0">Önce bir seçim yap.</p>
+    <div class="ayrac">ODA</div>
+    <div class="dugmeler">
+      <button id="kurBtn">✨ Oda kur</button>
+      <input id="kodGiris" placeholder="KOD" maxlength="4">
+      <button class="ik" id="katilBtn">Katıl →</button>
+    </div>
+    <p id="durum" class="kucuk" style="margin-bottom:0">Önce kim olduğunu seç.</p>
     <p id="kod"></p>
-    <p class="kucuk" id="sozlukDurum">Sözlük yükleniyor…</p>
+    <div class="lobiBilgi">
+      <span class="rozetMini" id="sozlukDurum">Sözlük yükleniyor…</span>
+      <span class="rozetMini">15×15 tahta · 100 taş · TDK anlamları</span>
+    </div>
   </div>
 
   <div id="oyun">
@@ -396,8 +432,10 @@ function baglantiKur(c){
   c.on("open", ()=>{
     $("giris").style.display = "none"; $("oyun").style.display = "block";
     if(benHost) oyunuBaslat();
+    gonder({tip:"ad", ad:benAd});
   });
   c.on("data", m=>{
+    if(m.tip==="ad"){ oAd = m.ad || oAd; if(G) ciz(); return; }
     if(m.tip==="sohbet"){ sohbetYaz(1, m.metin); sesCal("sohbet"); return; }
     if(m.tip==="kalp"){ kalpPatlat(m.emoji||"💖"); sesCal("kalp"); return; }
     if(benHost){
@@ -438,8 +476,8 @@ const ETIKET = {k3:"K3", k2:"K2", h3:"H3", h2:"H2"};
 function ciz(){
   if(!G) return;
   const benimSira = G.sira === benim;
-  $("pBen").textContent = "Sen: " + G.puan[benim];
-  $("pO").textContent   = "O: " + G.puan[1-benim];
+  $("pBen").textContent = benAd + ": " + G.puan[benim];
+  $("pO").textContent   = oAd + ": " + G.puan[1-benim];
   $("pBen").className = "p" + (benimSira && !G.bitti ? " sira" : "");
   $("pO").className   = "p" + (!benimSira && !G.bitti ? " sira" : "");
   $("torba").textContent = "Torba: " + G.torba;
@@ -485,7 +523,7 @@ function ciz(){
   $("kayit").innerHTML = "";
   (G.kayit||[]).slice().reverse().forEach(k=>{
     const d = document.createElement("div");
-    d.textContent = (k.o===benim ? "Sen: " : "O: ") + k.m;
+    d.textContent = (k.o===benim ? benAd+": " : oAd+": ") + k.m;
     $("kayit").appendChild(d);
   });
   if(G.bitti){
@@ -611,7 +649,9 @@ const EMOJILER = ["💛","😘","🤗","😂","🥰","😭","👏","🔥","🤔"
 function sohbetYaz(kim, metin){
   const d = document.createElement("div");
   d.className = "msj " + (kim ? "o" : "ben");
-  d.textContent = metin;
+  const et = document.createElement("i"); et.className = "msjAd"; et.textContent = kim ? oAd : benAd;
+  const gv = document.createElement("span"); gv.textContent = metin;
+  d.appendChild(et); d.appendChild(gv);
   const w = document.getElementById("sohbet");
   w.appendChild(d); w.scrollTop = w.scrollHeight;
   while(w.children.length > 60) w.firstChild.remove();
@@ -705,6 +745,29 @@ new MutationObserver(()=>{
   }
   if(!t) sonUyari = "";
 }).observe(document.getElementById("uyari"), {childList:true, characterData:true, subtree:true});
+
+/* ---------------- isimler ---------------- */
+let benAd = "Sen", oAd = "O";
+document.querySelectorAll(".kim").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll(".kim").forEach(x=>x.classList.remove("secili"));
+    b.classList.add("secili");
+    benAd = b.dataset.ad;
+    oAd = benAd === "Ayşe Nur" ? "Oğuzhan" : "Ayşe Nur";
+    document.getElementById("durum").textContent = "Merhaba " + benAd + "! Oda kur ya da kodu gir.";
+    sesCal("tas");
+  };
+});
+["kurBtn","katilBtn"].forEach(id=>{
+  const el = document.getElementById(id); const f = el.onclick;
+  el.onclick = ()=>{
+    if(!document.querySelector(".kim.secili")){
+      document.getElementById("durum").textContent = "Önce ismini seç 💛";
+      sesCal("hata"); return;
+    }
+    f();
+  };
+});
 
 </script>
 </body>
