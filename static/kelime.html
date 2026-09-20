@@ -58,6 +58,44 @@
   #jokerPerde .harfler{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
   #jokerPerde .harfler button{padding:8px 12px;border-radius:10px}
   footer{margin-top:14px;text-align:center;color:#ffd54f;font-size:14px}
+
+  body{background:linear-gradient(-45deg,#10162e,#1c1636,#2a1b3a,#141b3d);background-size:400% 400%;animation:akis 18s ease infinite}
+  @keyframes akis{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  h1{background:linear-gradient(90deg,#ffd54f,#ff8a80,#4dd0e1,#ffd54f);background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:kayan 6s linear infinite;font-weight:900}
+  @keyframes kayan{to{background-position:300% 0}}
+  .kart{backdrop-filter:blur(6px);box-shadow:0 10px 30px #00000044}
+  .skor .p.sira{box-shadow:0 0 18px #ffd54f88;animation:nabiz 1.8s ease-in-out infinite}
+  @keyframes nabiz{50%{box-shadow:0 0 30px #ffd54fcc}}
+  .h.k3,.h.k2,.h.h3,.h.h2{overflow:hidden}
+  .h.k3::after,.h.k2::after,.h.h3::after,.h.h2::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(115deg,transparent 40%,#ffffff55 50%,transparent 60%);
+    transform:translateX(-130%);animation:parla 5s ease-in-out infinite}
+  @keyframes parla{0%,70%{transform:translateX(-130%)}88%,100%{transform:translateX(130%)}}
+  .h.tas{animation:dus .22s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes dus{from{transform:scale(1.6) translateY(-12px);opacity:.2}to{transform:none;opacity:1}}
+  .h.yeni{box-shadow:0 0 12px #4dd0e1cc}
+  .t:hover{transform:translateY(-3px)}
+  button{transition:transform .12s,filter .12s}
+  button:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
+  #anlamlar{margin-top:10px;font-size:13px;color:#e0f7fa}
+  #anlamlar .anlam{background:#4dd0e11a;border-left:3px solid #4dd0e1;border-radius:8px;padding:6px 10px;margin-top:6px;animation:gir .25s ease-out}
+  #anlamlar b{color:#ffd54f}
+  .sohbetUst{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#ffd54f;font-size:15px}
+  .mini{padding:4px 10px;border-radius:10px;background:#ffffff22;color:#fff;font-size:15px}
+  #sohbet{height:150px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+  .msj{max-width:80%;padding:7px 12px;border-radius:14px;font-size:14px;word-break:break-word;animation:gir .2s ease-out}
+  @keyframes gir{from{opacity:0;transform:translateY(6px)}}
+  .msj.ben{align-self:flex-end;background:#ffd54f;color:#1a1440;border-bottom-right-radius:4px}
+  .msj.o{align-self:flex-start;background:#ffffff1f;border-bottom-left-radius:4px}
+  .emojiBar{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
+  .emojiBar button{padding:3px 8px;border-radius:10px;background:#ffffff18;font-size:18px}
+  .sohbetAlt{display:flex;gap:6px}
+  #sohbetGiris{flex:1;width:auto;text-transform:none}
+  .kalpBtn{background:#ec407a;color:#fff;font-size:18px}
+  .patlama{position:fixed;inset:0;pointer-events:none;z-index:200}
+  .patlama span{position:absolute;animation:ucus 2.2s ease-out forwards}
+  @keyframes ucus{0%{transform:scale(.3);opacity:0}15%{transform:scale(1.25);opacity:1}100%{transform:translateY(-230px) scale(.9) rotate(25deg);opacity:0}}
 </style>
 </head>
 <body>
@@ -95,6 +133,18 @@
       </div>
       <div class="uyari" id="uyari"></div>
       <div id="kayit"></div>
+      <div id="anlamlar"></div>
+    </div>
+
+    <div class="kart">
+      <div class="sohbetUst"><b>Sohbet 💬</b><button class="mini" id="sesBtn">🔊 Ses açık</button></div>
+      <div id="sohbet"></div>
+      <div class="emojiBar" id="emojiBar"></div>
+      <div class="sohbetAlt">
+        <input id="sohbetGiris" placeholder="Bir şeyler yaz…" maxlength="120">
+        <button id="sohbetGonder">Gönder</button>
+        <button class="kalpBtn" id="kalpBtn">💖</button>
+      </div>
     </div>
   </div>
   <footer>— Oğuzhan 💛</footer>
@@ -348,6 +398,8 @@ function baglantiKur(c){
     if(benHost) oyunuBaslat();
   });
   c.on("data", m=>{
+    if(m.tip==="sohbet"){ sohbetYaz(1, m.metin); sesCal("sohbet"); return; }
+    if(m.tip==="kalp"){ kalpPatlat(m.emoji||"💖"); sesCal("kalp"); return; }
     if(benHost){
       let s = null;
       if(m.tip==="hamle")    s = hamleIsle(1, m.yerler);
@@ -512,6 +564,148 @@ $("degistir").onclick = ()=>{
   if(benHost){ const s = degistirIsle(0, harfler); if(s.hata) $("uyari").textContent = s.hata; }
   else gonder({tip:"degistir", harfler});
 };
+/* ---------------- ses ---------------- */
+let sesAcik = true, AC = null;
+const ac = ()=>{ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); return AC; };
+function ton(f, sure, tip, hacim, gecikme){
+  if(!sesAcik) return;
+  try{
+    const c = ac(); const o = c.createOscillator(), g = c.createGain();
+    o.type = tip || "sine"; o.frequency.value = f;
+    const t0 = c.currentTime + (gecikme||0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(hacim||0.14, t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+(sure||0.2));
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0+(sure||0.2)+0.05);
+  }catch(e){}
+}
+function sesCal(ad){
+  if(ad==="tas")    ton(660,0.08,"triangle",0.12);
+  if(ad==="geri")   ton(300,0.10,"triangle",0.10);
+  if(ad==="hamle")  [523,659,784].forEach((f,i)=>ton(f,0.22,"sine",0.13,i*0.07));
+  if(ad==="bingo")  [523,659,784,1047,1319].forEach((f,i)=>ton(f,0.35,"sine",0.15,i*0.09));
+  if(ad==="hata"){  ton(180,0.22,"sawtooth",0.08); ton(140,0.26,"sawtooth",0.07,0.09); }
+  if(ad==="kalp")   [880,1175].forEach((f,i)=>ton(f,0.25,"sine",0.12,i*0.08));
+  if(ad==="sohbet") ton(980,0.10,"sine",0.10);
+}
+
+/* ---------------- efektler ---------------- */
+function kalpPatlat(em, adet){
+  const k = document.createElement("div"); k.className = "patlama";
+  for(let i=0;i<(adet||22);i++){
+    const s = document.createElement("span");
+    s.textContent = em;
+    s.style.left = (Math.random()*90+5)+"vw";
+    s.style.top  = (Math.random()*65+25)+"vh";
+    s.style.fontSize = (18+Math.random()*30)+"px";
+    s.style.animationDelay = (Math.random()*0.5)+"s";
+    k.appendChild(s);
+  }
+  document.body.appendChild(k);
+  setTimeout(()=>k.remove(), 2800);
+}
+
+/* ---------------- sohbet ---------------- */
+const EMOJILER = ["💛","😘","🤗","😂","🥰","😭","👏","🔥","🤔","😴","🙈","💪","🎉","😡","🍀"];
+function sohbetYaz(kim, metin){
+  const d = document.createElement("div");
+  d.className = "msj " + (kim ? "o" : "ben");
+  d.textContent = metin;
+  const w = document.getElementById("sohbet");
+  w.appendChild(d); w.scrollTop = w.scrollHeight;
+  while(w.children.length > 60) w.firstChild.remove();
+}
+function sohbetKur(){
+  const bar = document.getElementById("emojiBar");
+  EMOJILER.forEach(e=>{
+    const b = document.createElement("button");
+    b.textContent = e;
+    b.onclick = ()=>{ const g = document.getElementById("sohbetGiris"); g.value += e; g.focus(); };
+    bar.appendChild(b);
+  });
+  document.getElementById("sohbetGonder").onclick = ()=>{
+    const g = document.getElementById("sohbetGiris");
+    const v = g.value.trim(); if(!v) return;
+    sohbetYaz(0, v); gonder({tip:"sohbet", metin:v}); g.value = "";
+  };
+  document.getElementById("sohbetGiris").addEventListener("keydown", e=>{
+    if(e.key === "Enter") document.getElementById("sohbetGonder").click();
+  });
+  document.getElementById("kalpBtn").onclick = ()=>{
+    kalpPatlat("💖"); sesCal("kalp"); gonder({tip:"kalp", emoji:"💖"});
+  };
+  document.getElementById("sesBtn").onclick = ()=>{
+    sesAcik = !sesAcik;
+    document.getElementById("sesBtn").textContent = sesAcik ? "🔊 Ses açık" : "🔇 Ses kapalı";
+    if(sesAcik) sesCal("tas");
+  };
+}
+sohbetKur();
+
+/* ---------------- kelime anlamları ---------------- */
+const anlamOnbellek = {};
+async function anlamGetir(k){
+  const a = k.toLocaleLowerCase("tr");
+  if(a in anlamOnbellek) return anlamOnbellek[a];
+  try{
+    const r = await fetch("https://sozluk.gov.tr/gts?ara=" + encodeURIComponent(a));
+    const j = await r.json();
+    const t = (Array.isArray(j) && j[0] && j[0].anlamlarListe && j[0].anlamlarListe[0])
+      ? j[0].anlamlarListe[0].anlam : null;
+    anlamOnbellek[a] = t; return t;
+  }catch(e){ anlamOnbellek[a] = null; return null; }
+}
+async function anlamlariGoster(metin){
+  const bas = (metin.split(" · ")[0] || "");
+  const kelimeler = bas.split(" + ").map(s=>s.trim()).filter(s=>/^[A-ZÇĞİÖŞÜ]{2,}$/.test(s));
+  for(const k of kelimeler){
+    const a = await anlamGetir(k);
+    const d = document.createElement("div"); d.className = "anlam";
+    d.innerHTML = "<b>" + k + "</b>: " + (a ? a : "TDK'da açıklama bulunamadı.");
+    const kutu = document.getElementById("anlamlar");
+    kutu.prepend(d);
+    while(kutu.children.length > 6) kutu.lastChild.remove();
+  }
+}
+
+/* ---------------- kancalar ---------------- */
+const _ciz = ciz; let sonKayitSayi = -1;
+ciz = function(){
+  _ciz();
+  if(!G) return;
+  const n = (G.kayit||[]).length;
+  if(sonKayitSayi >= 0 && n > sonKayitSayi){
+    const son = G.kayit[n-1].m || "";
+    if(/\+\d/.test(son)){
+      const bingo = son.indexOf("bingo") >= 0;
+      sesCal(bingo ? "bingo" : "hamle");
+      if(bingo) kalpPatlat("🎉", 30);
+      anlamlariGoster(son);
+    }
+  }
+  sonKayitSayi = n;
+};
+
+const _kareTikla = kareTikla;
+kareTikla = function(i){
+  const o = gecici.length;
+  _kareTikla(i);
+  if(gecici.length > o) sesCal("tas");
+  else if(gecici.length < o) sesCal("geri");
+};
+
+let sonUyari = "";
+new MutationObserver(()=>{
+  const t = document.getElementById("uyari").textContent;
+  if(t && t !== sonUyari){
+    sonUyari = t;
+    if(t.indexOf("bitti") < 0 && t.indexOf("Değişecek") < 0) sesCal("hata");
+    if(t.indexOf("kazandın") >= 0) kalpPatlat("🏆", 26);
+  }
+  if(!t) sonUyari = "";
+}).observe(document.getElementById("uyari"), {childList:true, characterData:true, subtree:true});
+
 </script>
 </body>
 </html>
